@@ -7,6 +7,7 @@
 //! - Streaming events via SSE
 
 pub mod archive;
+pub mod chunk;
 pub mod github;
 pub mod language;
 pub mod parsing;
@@ -15,6 +16,7 @@ pub mod symbol;
 pub mod traversal;
 
 pub use archive::{extract_zip, process_extracted_files};
+pub use chunk::{create_chunks, Chunk, ChunkMetadata, ChunkingConfig};
 pub use github::GitHubUrl;
 pub use language::detect_language;
 pub use parsing::{parse, Parser};

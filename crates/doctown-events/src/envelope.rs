@@ -508,7 +508,9 @@ mod tests {
         let envelope = Envelope::new("unknown.event.v1", context, payload);
         assert_eq!(
             envelope.validate(),
-            Err(ValidationError::InvalidEventType("unknown.event.v1".to_string()))
+            Err(ValidationError::InvalidEventType(
+                "unknown.event.v1".to_string()
+            ))
         );
     }
 
@@ -542,7 +544,8 @@ mod tests {
 
         let job_id = JobId::new("job_abc123def456").unwrap();
         let event_id = doctown_common::EventId::new("evt_completed123").unwrap();
-        let context = Context::new(job_id, "https://github.com/example/repo").with_git_ref("v1.0.0");
+        let context =
+            Context::new(job_id, "https://github.com/example/repo").with_git_ref("v1.0.0");
         let payload = TestPayload {
             message: "Processing complete".to_string(),
         };

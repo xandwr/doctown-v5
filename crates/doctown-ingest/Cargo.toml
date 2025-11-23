@@ -25,6 +25,8 @@ zip = "6.0.0"
 walkdir = "2.5.0"
 tempfile = "3.23.0"
 tokio-util = "0.7.17"
+sha2 = "0.10"
+hex = "0.4"
 
 [dev-dependencies]
 pretty_assertions = { workspace = true }

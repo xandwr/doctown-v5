@@ -767,8 +767,7 @@ class MyClass:
 "#;
         let tree = parse(code, Language::Python).unwrap();
 
-        let methods: Vec<_> =
-            find_nodes_by_kind(tree.root_node(), "function_definition").collect();
+        let methods: Vec<_> = find_nodes_by_kind(tree.root_node(), "function_definition").collect();
         assert_eq!(methods.len(), 2);
     }
 }

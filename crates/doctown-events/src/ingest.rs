@@ -288,8 +288,9 @@ mod tests {
 
     #[test]
     fn test_ingest_started_snapshot() {
-        let payload = IngestStartedPayload::new("https://github.com/example/awesome-project", "main")
-            .with_commit("abc123def456789");
+        let payload =
+            IngestStartedPayload::new("https://github.com/example/awesome-project", "main")
+                .with_commit("abc123def456789");
 
         insta::assert_json_snapshot!("ingest_started_payload", payload);
     }

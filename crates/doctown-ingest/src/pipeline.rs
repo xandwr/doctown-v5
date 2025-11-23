@@ -3,12 +3,10 @@
 use crate::archive::{extract_zip, process_extracted_files};
 use crate::github::{GitHubClient, GitHubUrl};
 use doctown_common::{DocError, JobId};
-use doctown_events::{
-    Context, Envelope, IngestCompletedPayload, IngestStartedPayload, Status,
-};
+use doctown_events::{Context, Envelope, IngestCompletedPayload, IngestStartedPayload, Status};
 use serde_json;
-use tokio::sync::mpsc;
 use tempfile::tempdir;
+use tokio::sync::mpsc;
 use tokio_util::sync::CancellationToken;
 
 /// Type alias for the event sender.
@@ -25,8 +23,12 @@ pub async fn run_pipeline(
     let dir = tempdir()?;
     let zip_path = dir.path().join("repo.zip");
 
-    let context = Context::new(job_id.clone(), github_url.canonical_url())
-        .with_git_ref(github_url.git_ref.clone().unwrap_or_else(|| "HEAD".to_string()));
+    let context = Context::new(job_id.clone(), github_url.canonical_url()).with_git_ref(
+        github_url
+            .git_ref
+            .clone()
+            .unwrap_or_else(|| "HEAD".to_string()),
+    );
 
     // Emit IngestStarted event
     sender
@@ -36,7 +38,10 @@ pub async fn run_pipeline(
                 context.clone(),
                 serde_json::to_value(IngestStartedPayload::new(
                     github_url.canonical_url(),
-                    github_url.git_ref.clone().unwrap_or_else(|| "HEAD".to_string()),
+                    github_url
+                        .git_ref
+                        .clone()
+                        .unwrap_or_else(|| "HEAD".to_string()),
                 ))?,
             )
             .into(),
@@ -94,13 +99,18 @@ pub async fn run_pipeline(
                     Envelope::new(
                         "ingest.completed.v1",
                         context,
-                        serde_json::to_value(IngestCompletedPayload::failed(e.to_string(), duration_ms))?,
+                        serde_json::to_value(IngestCompletedPayload::failed(
+                            e.to_string(),
+                            duration_ms,
+                        ))?,
                     )
                     .with_status(Status::Failed)
                     .into(),
                 )
                 .await
-                .map_err(|send_err| DocError::Internal(format!("Failed to send event: {}", send_err)))?;
+                .map_err(|send_err| {
+                    DocError::Internal(format!("Failed to send event: {}", send_err))
+                })?;
             Err(e)
         }
     }
@@ -129,8 +139,14 @@ mod tests {
         }
 
         assert!(!events.is_empty());
-        let started_event = events.iter().find(|e| e.event_type == "ingest.started.v1").unwrap();
-        let completed_event = events.iter().find(|e| e.event_type == "ingest.completed.v1").unwrap();
+        let started_event = events
+            .iter()
+            .find(|e| e.event_type == "ingest.started.v1")
+            .unwrap();
+        let completed_event = events
+            .iter()
+            .find(|e| e.event_type == "ingest.completed.v1")
+            .unwrap();
 
         assert_eq!(started_event.context.job_id, job_id);
         assert_eq!(completed_event.context.job_id, job_id);
@@ -149,6 +165,9 @@ mod tests {
 
         let result = run_pipeline(job_id.clone(), &url, sender, cancel_token).await;
         assert!(result.is_err());
-        assert_eq!(result.unwrap_err().to_string(), "Internal error: Ingest cancelled");
+        assert_eq!(
+            result.unwrap_err().to_string(),
+            "Internal error: Ingest cancelled"
+        );
     }
 }

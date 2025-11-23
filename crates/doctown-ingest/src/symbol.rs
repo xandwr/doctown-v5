@@ -2,7 +2,9 @@
 use doctown_common::types::{ByteRange, SymbolKind, Visibility};
 use tree_sitter::{Node, Tree};
 
-use crate::traversal::{ancestors, child_by_field, find_child_by_kind, find_nodes_by_kind, node_byte_range, node_text};
+use crate::traversal::{
+    ancestors, child_by_field, find_child_by_kind, find_nodes_by_kind, node_byte_range, node_text,
+};
 
 /// A symbol extracted from source code.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -196,16 +198,25 @@ fn extract_function_signature(node: Node<'_>, source: &str) -> Option<String> {
 /// Extract a Rust struct definition.
 fn extract_rust_struct(node: Node<'_>, source: &str) -> Option<Symbol> {
     // Try to find the struct name
-    let name_node = child_by_field(node, "name").or_else(|| find_child_by_kind(node, "type_identifier"));
-    let name = if let Some(n) = name_node { node_text(n, source).to_string() } else { "".to_string() };
-    let name_range = name_node.map(node_byte_range).unwrap_or(ByteRange::new(node.start_byte(), node.start_byte()));
+    let name_node =
+        child_by_field(node, "name").or_else(|| find_child_by_kind(node, "type_identifier"));
+    let name = if let Some(n) = name_node {
+        node_text(n, source).to_string()
+    } else {
+        "".to_string()
+    };
+    let name_range = name_node
+        .map(node_byte_range)
+        .unwrap_or(ByteRange::new(node.start_byte(), node.start_byte()));
 
     let range = node_byte_range(node);
 
     let visibility = extract_visibility(node, source);
 
     // Build a compact signature for the struct: from name to end of node
-    let sig_start = name_node.map(|n| n.start_byte()).unwrap_or(node.start_byte());
+    let sig_start = name_node
+        .map(|n| n.start_byte())
+        .unwrap_or(node.start_byte());
     let signature = Some(source[sig_start..node.end_byte()].trim().to_string());
 
     Some(Symbol {
@@ -221,7 +232,8 @@ fn extract_rust_struct(node: Node<'_>, source: &str) -> Option<Symbol> {
 
 /// Extract a Rust enum definition.
 fn extract_rust_enum(node: Node<'_>, source: &str) -> Option<Symbol> {
-    let name_node = child_by_field(node, "name").or_else(|| find_child_by_kind(node, "type_identifier"))?;
+    let name_node =
+        child_by_field(node, "name").or_else(|| find_child_by_kind(node, "type_identifier"))?;
     let name = node_text(name_node, source).to_string();
     let name_range = node_byte_range(name_node);
     let range = node_byte_range(node);
@@ -244,7 +256,8 @@ fn extract_rust_enum(node: Node<'_>, source: &str) -> Option<Symbol> {
 
 /// Extract a Rust trait definition.
 fn extract_rust_trait(node: Node<'_>, source: &str) -> Option<Symbol> {
-    let name_node = child_by_field(node, "name").or_else(|| find_child_by_kind(node, "type_identifier"))?;
+    let name_node =
+        child_by_field(node, "name").or_else(|| find_child_by_kind(node, "type_identifier"))?;
     let name = node_text(name_node, source).to_string();
     let name_range = node_byte_range(name_node);
     let range = node_byte_range(node);
@@ -303,7 +316,8 @@ fn extract_rust_impl(node: Node<'_>, source: &str) -> Option<Symbol> {
 
 /// Extract a Rust module declaration.
 fn extract_rust_module(node: Node<'_>, source: &str) -> Option<Symbol> {
-    let name_node = child_by_field(node, "name").or_else(|| find_child_by_kind(node, "identifier"))?;
+    let name_node =
+        child_by_field(node, "name").or_else(|| find_child_by_kind(node, "identifier"))?;
     let name = node_text(name_node, source).to_string();
     let name_range = node_byte_range(name_node);
     let range = node_byte_range(node);
@@ -315,7 +329,11 @@ fn extract_rust_module(node: Node<'_>, source: &str) -> Option<Symbol> {
 
     // Signature: just "mod name" for file modules, full definition for inline
     let signature = if is_inline {
-        Some(source[name_node.start_byte()..node.end_byte()].trim().to_string())
+        Some(
+            source[name_node.start_byte()..node.end_byte()]
+                .trim()
+                .to_string(),
+        )
     } else {
         Some(format!("mod {}", name))
     };
@@ -333,7 +351,8 @@ fn extract_rust_module(node: Node<'_>, source: &str) -> Option<Symbol> {
 
 /// Extract a Rust const item.
 fn extract_rust_const(node: Node<'_>, source: &str) -> Option<Symbol> {
-    let name_node = child_by_field(node, "name").or_else(|| find_child_by_kind(node, "identifier"))?;
+    let name_node =
+        child_by_field(node, "name").or_else(|| find_child_by_kind(node, "identifier"))?;
     let name = node_text(name_node, source).to_string();
     let name_range = node_byte_range(name_node);
     let range = node_byte_range(node);
@@ -355,7 +374,8 @@ fn extract_rust_const(node: Node<'_>, source: &str) -> Option<Symbol> {
 
 /// Extract a Rust static item.
 fn extract_rust_static(node: Node<'_>, source: &str) -> Option<Symbol> {
-    let name_node = child_by_field(node, "name").or_else(|| find_child_by_kind(node, "identifier"))?;
+    let name_node =
+        child_by_field(node, "name").or_else(|| find_child_by_kind(node, "identifier"))?;
     let name = node_text(name_node, source).to_string();
     let name_range = node_byte_range(name_node);
     let range = node_byte_range(node);
@@ -377,7 +397,8 @@ fn extract_rust_static(node: Node<'_>, source: &str) -> Option<Symbol> {
 
 /// Extract a Rust type alias.
 fn extract_rust_type_alias(node: Node<'_>, source: &str) -> Option<Symbol> {
-    let name_node = child_by_field(node, "name").or_else(|| find_child_by_kind(node, "type_identifier"))?;
+    let name_node =
+        child_by_field(node, "name").or_else(|| find_child_by_kind(node, "type_identifier"))?;
     let name = node_text(name_node, source).to_string();
     let name_range = node_byte_range(name_node);
     let range = node_byte_range(node);
@@ -399,7 +420,8 @@ fn extract_rust_type_alias(node: Node<'_>, source: &str) -> Option<Symbol> {
 
 /// Extract a Rust macro_rules! definition.
 fn extract_rust_macro(node: Node<'_>, source: &str) -> Option<Symbol> {
-    let name_node = child_by_field(node, "name").or_else(|| find_child_by_kind(node, "identifier"))?;
+    let name_node =
+        child_by_field(node, "name").or_else(|| find_child_by_kind(node, "identifier"))?;
     let name = node_text(name_node, source).to_string();
     let name_range = node_byte_range(name_node);
     let range = node_byte_range(node);
@@ -508,10 +530,15 @@ fn extract_python_function_signature(node: Node<'_>, source: &str) -> Option<Str
     let params = node_text(params_node, source);
 
     // Check for return type annotation
-    let return_type = child_by_field(node, "return_type")
-        .map(|n| format!(" -> {}", node_text(n, source)));
+    let return_type =
+        child_by_field(node, "return_type").map(|n| format!(" -> {}", node_text(n, source)));
 
-    Some(format!("{}{}{}", name, params, return_type.unwrap_or_default()))
+    Some(format!(
+        "{}{}{}",
+        name,
+        params,
+        return_type.unwrap_or_default()
+    ))
 }
 
 /// Extract decorators from a Python function or class.
@@ -562,8 +589,8 @@ fn extract_python_class_signature(node: Node<'_>, source: &str) -> Option<String
     let name = node_text(name_node, source);
 
     // Check for superclasses (argument_list contains base classes)
-    let superclasses = child_by_field(node, "superclasses")
-        .map(|n| node_text(n, source).to_string());
+    let superclasses =
+        child_by_field(node, "superclasses").map(|n| node_text(n, source).to_string());
 
     match superclasses {
         Some(supers) => Some(format!("{}{}", name, supers)),
@@ -593,8 +620,8 @@ fn extract_python_assignment(node: Node<'_>, source: &str) -> Option<Symbol> {
     let range = node_byte_range(node);
 
     // Get the type annotation if present
-    let type_annotation = child_by_field(node, "type")
-        .map(|n| format!(": {}", node_text(n, source)));
+    let type_annotation =
+        child_by_field(node, "type").map(|n| format!(": {}", node_text(n, source)));
 
     // Build signature
     let signature = match type_annotation {
@@ -723,7 +750,11 @@ where
 
         // with_bounds<T: Clone + Debug>
         assert_eq!(symbols[2].name, "with_bounds");
-        assert!(symbols[2].signature.as_ref().unwrap().contains("with_bounds<T: Clone + Debug>"));
+        assert!(symbols[2]
+            .signature
+            .as_ref()
+            .unwrap()
+            .contains("with_bounds<T: Clone + Debug>"));
 
         // with_where clause
         assert_eq!(symbols[3].name, "with_where");
@@ -822,8 +853,16 @@ fn complex(
 
         assert_eq!(symbols.len(), 1);
         assert_eq!(symbols[0].name, "complex");
-        assert!(symbols[0].signature.as_ref().unwrap().contains("name: String"));
-        assert!(symbols[0].signature.as_ref().unwrap().contains("-> Option<Vec<String>>"));
+        assert!(symbols[0]
+            .signature
+            .as_ref()
+            .unwrap()
+            .contains("name: String"));
+        assert!(symbols[0]
+            .signature
+            .as_ref()
+            .unwrap()
+            .contains("-> Option<Vec<String>>"));
     }
 
     #[test]
@@ -835,12 +874,24 @@ fn complex(
         assert_eq!(symbols.len(), 2);
 
         // First function: "fn foo() {}"
-        assert_eq!(&code[symbols[0].range.start..symbols[0].range.end], "fn foo() {}");
-        assert_eq!(&code[symbols[0].name_range.start..symbols[0].name_range.end], "foo");
+        assert_eq!(
+            &code[symbols[0].range.start..symbols[0].range.end],
+            "fn foo() {}"
+        );
+        assert_eq!(
+            &code[symbols[0].name_range.start..symbols[0].name_range.end],
+            "foo"
+        );
 
         // Second function: "fn bar() {}"
-        assert_eq!(&code[symbols[1].range.start..symbols[1].range.end], "fn bar() {}");
-        assert_eq!(&code[symbols[1].name_range.start..symbols[1].name_range.end], "bar");
+        assert_eq!(
+            &code[symbols[1].range.start..symbols[1].range.end],
+            "fn bar() {}"
+        );
+        assert_eq!(
+            &code[symbols[1].name_range.start..symbols[1].name_range.end],
+            "bar"
+        );
     }
 
     #[test]
@@ -861,7 +912,11 @@ pub async fn fetch<'a, T: Deserialize<'a>>(url: &'a str) -> Result<T, Error> {
         assert_eq!(sym.visibility, Visibility::Public);
         assert!(sym.signature.as_ref().unwrap().contains("'a"));
         assert!(sym.signature.as_ref().unwrap().contains("T: Deserialize"));
-        assert!(sym.signature.as_ref().unwrap().contains("-> Result<T, Error>"));
+        assert!(sym
+            .signature
+            .as_ref()
+            .unwrap()
+            .contains("-> Result<T, Error>"));
     }
 
     #[test]
@@ -1037,13 +1092,20 @@ impl Point {
         let symbols = extract_symbols(&tree, code, Language::Rust);
 
         // Should have struct + impl
-        let impls: Vec<_> = symbols.iter().filter(|s| s.kind == SymbolKind::Impl).collect();
+        let impls: Vec<_> = symbols
+            .iter()
+            .filter(|s| s.kind == SymbolKind::Impl)
+            .collect();
         assert_eq!(impls.len(), 1);
 
         let impl_sym = impls[0];
         assert_eq!(impl_sym.name, "Point");
         assert_eq!(impl_sym.kind, SymbolKind::Impl);
-        assert!(impl_sym.signature.as_ref().unwrap().starts_with("impl Point"));
+        assert!(impl_sym
+            .signature
+            .as_ref()
+            .unwrap()
+            .starts_with("impl Point"));
     }
 
     #[test]
@@ -1066,13 +1128,20 @@ impl Clone for MyStruct {
         let tree = parse(code, Language::Rust).unwrap();
         let symbols = extract_symbols(&tree, code, Language::Rust);
 
-        let impls: Vec<_> = symbols.iter().filter(|s| s.kind == SymbolKind::Impl).collect();
+        let impls: Vec<_> = symbols
+            .iter()
+            .filter(|s| s.kind == SymbolKind::Impl)
+            .collect();
         assert_eq!(impls.len(), 2);
 
         // Check Default impl
         let default_impl = impls.iter().find(|s| s.name.contains("Default")).unwrap();
         assert_eq!(default_impl.name, "Default for MyStruct");
-        assert!(default_impl.signature.as_ref().unwrap().contains("impl Default for MyStruct"));
+        assert!(default_impl
+            .signature
+            .as_ref()
+            .unwrap()
+            .contains("impl Default for MyStruct"));
 
         // Check Clone impl
         let clone_impl = impls.iter().find(|s| s.name.contains("Clone")).unwrap();
@@ -1093,7 +1162,10 @@ mod utils {
         let tree = parse(code, Language::Rust).unwrap();
         let symbols = extract_symbols(&tree, code, Language::Rust);
 
-        let mods: Vec<_> = symbols.iter().filter(|s| s.kind == SymbolKind::Module).collect();
+        let mods: Vec<_> = symbols
+            .iter()
+            .filter(|s| s.kind == SymbolKind::Module)
+            .collect();
         assert_eq!(mods.len(), 1);
 
         let m = mods[0];
@@ -1113,7 +1185,10 @@ mod lexer;
         let tree = parse(code, Language::Rust).unwrap();
         let symbols = extract_symbols(&tree, code, Language::Rust);
 
-        let mods: Vec<_> = symbols.iter().filter(|s| s.kind == SymbolKind::Module).collect();
+        let mods: Vec<_> = symbols
+            .iter()
+            .filter(|s| s.kind == SymbolKind::Module)
+            .collect();
         assert_eq!(mods.len(), 2);
 
         let parser_mod = mods.iter().find(|s| s.name == "parser").unwrap();
@@ -1138,7 +1213,10 @@ pub const MAX_SIZE: usize = 1024;
         let tree = parse(code, Language::Rust).unwrap();
         let symbols = extract_symbols(&tree, code, Language::Rust);
 
-        let consts: Vec<_> = symbols.iter().filter(|s| s.kind == SymbolKind::Const).collect();
+        let consts: Vec<_> = symbols
+            .iter()
+            .filter(|s| s.kind == SymbolKind::Const)
+            .collect();
         assert_eq!(consts.len(), 2);
 
         let pi = consts.iter().find(|s| s.name == "PI").unwrap();
@@ -1159,7 +1237,10 @@ pub static mut BUFFER: [u8; 1024] = [0; 1024];
         let tree = parse(code, Language::Rust).unwrap();
         let symbols = extract_symbols(&tree, code, Language::Rust);
 
-        let statics: Vec<_> = symbols.iter().filter(|s| s.kind == SymbolKind::Static).collect();
+        let statics: Vec<_> = symbols
+            .iter()
+            .filter(|s| s.kind == SymbolKind::Static)
+            .collect();
         assert_eq!(statics.len(), 2);
 
         let counter = statics.iter().find(|s| s.name == "COUNTER").unwrap();
@@ -1180,7 +1261,10 @@ pub type Callback = Box<dyn Fn(i32) -> bool>;
         let tree = parse(code, Language::Rust).unwrap();
         let symbols = extract_symbols(&tree, code, Language::Rust);
 
-        let types: Vec<_> = symbols.iter().filter(|s| s.kind == SymbolKind::TypeAlias).collect();
+        let types: Vec<_> = symbols
+            .iter()
+            .filter(|s| s.kind == SymbolKind::TypeAlias)
+            .collect();
         assert_eq!(types.len(), 2);
 
         let result = types.iter().find(|s| s.name == "Result").unwrap();
@@ -1208,14 +1292,20 @@ macro_rules! println {
         let tree = parse(code, Language::Rust).unwrap();
         let symbols = extract_symbols(&tree, code, Language::Rust);
 
-        let macros: Vec<_> = symbols.iter().filter(|s| s.kind == SymbolKind::Macro).collect();
+        let macros: Vec<_> = symbols
+            .iter()
+            .filter(|s| s.kind == SymbolKind::Macro)
+            .collect();
         assert_eq!(macros.len(), 2);
 
         let vec_macro = macros.iter().find(|s| s.name == "vec").unwrap();
         assert_eq!(vec_macro.signature.as_deref(), Some("macro_rules! vec"));
 
         let println_macro = macros.iter().find(|s| s.name == "println").unwrap();
-        assert_eq!(println_macro.signature.as_deref(), Some("macro_rules! println"));
+        assert_eq!(
+            println_macro.signature.as_deref(),
+            Some("macro_rules! println")
+        );
     }
 
     // ============================================
@@ -1282,12 +1372,20 @@ macro_rules! my_macro {
         assert_eq!(count_kind(SymbolKind::Module), 1, "Should have 1 module");
         assert_eq!(count_kind(SymbolKind::Const), 1, "Should have 1 const");
         assert_eq!(count_kind(SymbolKind::Static), 1, "Should have 1 static");
-        assert_eq!(count_kind(SymbolKind::TypeAlias), 1, "Should have 1 type alias");
+        assert_eq!(
+            count_kind(SymbolKind::TypeAlias),
+            1,
+            "Should have 1 type alias"
+        );
         assert_eq!(count_kind(SymbolKind::Struct), 1, "Should have 1 struct");
         assert_eq!(count_kind(SymbolKind::Enum), 1, "Should have 1 enum");
         assert_eq!(count_kind(SymbolKind::Trait), 1, "Should have 1 trait");
         assert_eq!(count_kind(SymbolKind::Impl), 2, "Should have 2 impl blocks");
-        assert_eq!(count_kind(SymbolKind::Function), 2, "Should have 2 functions");
+        assert_eq!(
+            count_kind(SymbolKind::Function),
+            2,
+            "Should have 2 functions"
+        );
         assert_eq!(count_kind(SymbolKind::Macro), 1, "Should have 1 macro");
 
         // Verify async function is marked as async
@@ -1432,12 +1530,18 @@ def complex(
         // First function byte range
         let foo_text = &code[symbols[0].range.start..symbols[0].range.end];
         assert!(foo_text.starts_with("def foo()"));
-        assert_eq!(&code[symbols[0].name_range.start..symbols[0].name_range.end], "foo");
+        assert_eq!(
+            &code[symbols[0].name_range.start..symbols[0].name_range.end],
+            "foo"
+        );
 
         // Second function byte range
         let bar_text = &code[symbols[1].range.start..symbols[1].range.end];
         assert!(bar_text.starts_with("def bar()"));
-        assert_eq!(&code[symbols[1].name_range.start..symbols[1].name_range.end], "bar");
+        assert_eq!(
+            &code[symbols[1].name_range.start..symbols[1].name_range.end],
+            "bar"
+        );
     }
 
     // ============================================
@@ -1492,7 +1596,10 @@ class Labrador(Dog, Friendly):
 
         // Multiple inheritance
         assert_eq!(symbols[2].name, "Labrador");
-        assert_eq!(symbols[2].signature.as_deref(), Some("Labrador(Dog, Friendly)"));
+        assert_eq!(
+            symbols[2].signature.as_deref(),
+            Some("Labrador(Dog, Friendly)")
+        );
     }
 
     #[test]
@@ -1514,7 +1621,10 @@ class ImmutablePoint:
         let symbols = extract_symbols(&tree, code, Language::Python);
 
         // Should extract both dataclasses
-        let classes: Vec<_> = symbols.iter().filter(|s| s.kind == SymbolKind::Class).collect();
+        let classes: Vec<_> = symbols
+            .iter()
+            .filter(|s| s.kind == SymbolKind::Class)
+            .collect();
         assert_eq!(classes.len(), 2);
         assert_eq!(classes[0].name, "Point");
         assert_eq!(classes[1].name, "ImmutablePoint");
@@ -1538,7 +1648,10 @@ COUNT: int = 42
         let tree = parse(code, Language::Python).unwrap();
         let symbols = extract_symbols(&tree, code, Language::Python);
 
-        let consts: Vec<_> = symbols.iter().filter(|s| s.kind == SymbolKind::Const).collect();
+        let consts: Vec<_> = symbols
+            .iter()
+            .filter(|s| s.kind == SymbolKind::Const)
+            .collect();
         assert_eq!(consts.len(), 5);
 
         let version = consts.iter().find(|s| s.name == "VERSION").unwrap();
@@ -1567,7 +1680,10 @@ def bar():
         assert!(all_sym.is_some());
         assert_eq!(all_sym.unwrap().kind, SymbolKind::Const);
 
-        let funcs: Vec<_> = symbols.iter().filter(|s| s.kind == SymbolKind::Function).collect();
+        let funcs: Vec<_> = symbols
+            .iter()
+            .filter(|s| s.kind == SymbolKind::Function)
+            .collect();
         assert_eq!(funcs.len(), 2);
     }
 
@@ -1612,9 +1728,17 @@ def helper():
         // Count each type
         let count_kind = |kind: SymbolKind| symbols.iter().filter(|s| s.kind == kind).count();
 
-        assert_eq!(count_kind(SymbolKind::Const), 3, "Should have 3 constants (__all__, VERSION, MAX_RETRIES)");
+        assert_eq!(
+            count_kind(SymbolKind::Const),
+            3,
+            "Should have 3 constants (__all__, VERSION, MAX_RETRIES)"
+        );
         assert_eq!(count_kind(SymbolKind::Class), 2, "Should have 2 classes");
-        assert_eq!(count_kind(SymbolKind::Function), 3, "Should have 3 functions");
+        assert_eq!(
+            count_kind(SymbolKind::Function),
+            3,
+            "Should have 3 functions"
+        );
 
         // Verify async function is marked as async
         let process_fn = symbols.iter().find(|s| s.name == "process").unwrap();

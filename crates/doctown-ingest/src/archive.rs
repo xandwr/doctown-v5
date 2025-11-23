@@ -1,11 +1,12 @@
 //! Archive extraction.
 use crate::language::detect_language;
-use crate::pipeline::EventSender;
 use crate::parsing::parse;
+use crate::pipeline::EventSender;
 use crate::symbol::extract_symbols;
 use doctown_common::{ChunkId, DocError};
 use doctown_events::{
-    Context, Envelope, IngestChunkCreatedPayload, IngestFileDetectedPayload, IngestFileSkippedPayload, SkipReason,
+    Context, Envelope, IngestChunkCreatedPayload, IngestFileDetectedPayload,
+    IngestFileSkippedPayload, SkipReason,
 };
 use std::fs;
 use std::io;
@@ -99,7 +100,9 @@ pub async fn process_extracted_files(
                                     .into(),
                                 )
                                 .await
-                                .map_err(|e| DocError::Internal(format!("Failed to send event: {}", e)))?;
+                                .map_err(|e| {
+                                    DocError::Internal(format!("Failed to send event: {}", e))
+                                })?;
                             chunks_created += 1;
                         }
                     } else {
@@ -117,7 +120,9 @@ pub async fn process_extracted_files(
                                 .into(),
                             )
                             .await
-                            .map_err(|e| DocError::Internal(format!("Failed to send event: {}", e)))?;
+                            .map_err(|e| {
+                                DocError::Internal(format!("Failed to send event: {}", e))
+                            })?;
                         files_skipped += 1;
                     }
                 } else {
@@ -167,7 +172,7 @@ mod tests {
     use std::fs::File;
     use std::io::Write;
     use tempfile::tempdir;
-    use zip::{ZipWriter, write::FileOptions};
+    use zip::{write::FileOptions, ZipWriter};
 
     #[test]
     fn test_extract_zip() {
@@ -178,7 +183,8 @@ mod tests {
         // Create a dummy zip file
         let file = File::create(&zip_path).unwrap();
         let mut zip = ZipWriter::new(file);
-        let options: FileOptions<'_, ()> = FileOptions::default().compression_method(zip::CompressionMethod::Stored);
+        let options: FileOptions<'_, ()> =
+            FileOptions::default().compression_method(zip::CompressionMethod::Stored);
         zip.start_file("hello.txt", options).unwrap();
         zip.write_all(b"Hello, world!").unwrap();
         zip.finish().unwrap();

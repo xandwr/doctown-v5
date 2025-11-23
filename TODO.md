@@ -268,35 +268,35 @@
 ## M1.7: Chunk Creation (`doctown-ingest`)
 
 ### M1.7.1 Chunk Structure
-- [ ] Define `Chunk` struct (id, content, file_path, language, byte_range, symbol_kind)
-- [ ] Define `ChunkMetadata` for additional context
-- [ ] Implement `Chunk::new()` constructor
-- [ ] [T] Unit test: chunk creation
+- [x] Define `Chunk` struct (id, content, file_path, language, byte_range, symbol_kind)
+- [x] Define `ChunkMetadata` for additional context
+- [x] Implement `Chunk::new()` constructor
+- [x] [T] Unit test: chunk creation
 
 ### M1.7.2 Chunking Strategy
-- [ ] Implement symbol-based chunking (one chunk per symbol)
-- [ ] Handle nested symbols (methods inside class → separate chunks)
-- [ ] Handle overlapping byte ranges (prefer smaller, more specific)
-- [ ] [T] Unit test: chunking produces expected chunks
-- [ ] [T] Unit test: nested symbols handled correctly
+- [x] Implement symbol-based chunking (one chunk per symbol)
+- [x] Handle nested symbols (methods inside class → separate chunks)
+- [x] Handle overlapping byte ranges (prefer smaller, more specific)
+- [x] [T] Unit test: chunking produces expected chunks
+- [x] [T] Unit test: nested symbols handled correctly
 
 ### M1.7.3 Large Symbol Handling
-- [ ] Detect symbols exceeding size threshold (e.g., 4KB)
-- [ ] Implement splitting with overlap for large symbols
-- [ ] Maintain semantic boundaries (don't split mid-statement)
-- [ ] [T] Unit test: large function split correctly
-- [ ] [T] Unit test: overlap preserved
+- [x] Detect symbols exceeding size threshold (e.g., 4KB)
+- [x] Implement splitting with overlap for large symbols
+- [x] Maintain semantic boundaries (don't split mid-statement)
+- [x] [T] Unit test: large function split correctly
+- [x] [T] Unit test: overlap preserved
 
 ### M1.7.4 File-level Fallback
-- [ ] Handle files with no extractable symbols
-- [ ] Create single file-level chunk
-- [ ] [T] Unit test: file without symbols gets file chunk
+- [x] Handle files with no extractable symbols
+- [x] Create single file-level chunk
+- [x] [T] Unit test: file without symbols gets file chunk
 
 ### M1.7.5 Chunk ID Generation
-- [ ] Generate stable chunk IDs (hash of content + path + range)
-- [ ] Ensure same input → same ID (deterministic)
-- [ ] [T] Unit test: chunk ID stability
-- [ ] [T] Unit test: different content → different ID
+- [x] Generate stable chunk IDs (hash of content + path + range)
+- [x] Ensure same input → same ID (deterministic)
+- [x] [T] Unit test: chunk ID stability
+- [x] [T] Unit test: different content → different ID
 
 ---
 
