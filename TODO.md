@@ -149,10 +149,10 @@
 - [x] [T] Unit test: parse invalid syntax returns partial tree
 
 ### M1.4.2 AST Traversal Utilities
-- [ ] Implement tree cursor wrapper
-- [ ] Implement node type matching helpers
-- [ ] Implement text extraction from node
-- [ ] [T] Unit tests for traversal helpers
+- [x] Implement tree cursor wrapper
+- [x] Implement node type matching helpers
+- [x] Implement text extraction from node
+- [x] [T] Unit tests for traversal helpers
 
 ---
 
