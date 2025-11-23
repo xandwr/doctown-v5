@@ -10,10 +10,12 @@ pub mod archive;
 pub mod github;
 pub mod language;
 pub mod parsing;
+pub mod pipeline;
 pub mod symbol;
 
 pub use archive::{extract_zip, process_extracted_files};
 pub use github::GitHubUrl;
 pub use language::detect_language;
 pub use parsing::parse;
+pub use pipeline::run_pipeline;
 pub use symbol::{extract_symbols, Symbol};

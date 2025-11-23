@@ -121,6 +121,7 @@ impl GitHubClient {
 
         let mut file = File::create(dest).await?;
         file.write_all(&content).await?;
+        file.sync_all().await?;
 
         Ok(())
     }
@@ -211,7 +212,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_download_repo() {
-        let url = GitHubUrl::parse("https://github.com/gemini-testing/lib-hello-gemini-rs").unwrap();
+        let url = GitHubUrl::parse("https://github.com/supabase/etl").unwrap();
         let dir = tempdir().unwrap();
         let dest = dir.path().join("repo.zip");
         let client = GitHubClient::new();
