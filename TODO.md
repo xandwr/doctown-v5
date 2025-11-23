@@ -399,28 +399,28 @@
 - [x] [T] Unit test: pipeline runs to completion
 
 ### M1.10.2 Event Emission
-- [ ] Emit `ingest.started.v1` at pipeline start
-- [ ] Emit `ingest.file_detected.v1` for each processable file
-- [ ] Emit `ingest.file_skipped.v1` for each skipped file (with reason)
-- [ ] Emit `ingest.chunk_created.v1` for each chunk (streamed immediately)
-- [ ] Emit `ingest.completed.v1` at end with totals
-- [ ] [T] Verify event sequence is valid (started → ... → completed)
-- [ ] [T] Verify event payloads match spec
+- [x] Emit `ingest.started.v1` at pipeline start
+- [x] Emit `ingest.file_detected.v1` for each processable file
+- [x] Emit `ingest.file_skipped.v1` for each skipped file (with reason)
+- [x] Emit `ingest.chunk_created.v1` for each chunk (streamed immediately)
+- [x] Emit `ingest.completed.v1` at end with totals
+- [x] [T] Verify event sequence is valid (started → ... → completed)
+- [x] [T] Verify event payloads match spec
 
 ### M1.10.3 Streaming Behavior
-- [ ] Emit chunks as soon as each file is parsed (don't batch)
-- [ ] Process files concurrently (bounded parallelism)
-- [ ] Keep memory usage bounded (don't hold all chunks)
-- [ ] [T] Unit test: chunks stream incrementally
-- [ ] [T] Benchmark: memory stays under 256MB for 1000-file repo
+- [x] Emit chunks as soon as each file is parsed (don't batch)
+- [x] Process files concurrently (bounded parallelism)
+- [x] Keep memory usage bounded (don't hold all chunks)
+- [x] [T] Unit test: chunks stream incrementally
+- [x] [T] Benchmark: memory stays under 256MB for 1000-file repo
 
 ### M1.10.4 Error Handling
-- [ ] Handle download failures → emit failed status
-- [ ] Handle parse errors → skip file, emit warning, continue
-- [ ] Handle timeout → emit failed status
-- [ ] Always emit completed event (even on failure)
-- [ ] [T] Unit test: download failure handled
-- [ ] [T] Unit test: parse error doesn't abort pipeline
+- [x] Handle download failures → emit failed status
+- [x] Handle parse errors → skip file, emit warning, continue
+- [x] Handle timeout → emit failed status
+- [x] Always emit completed event (even on failure)
+- [x] [T] Unit test: download failure handled
+- [x] [T] Unit test: parse error doesn't abort pipeline
 
 ---
 
