@@ -840,16 +840,16 @@ ONNX model and tokenizer is in models/minilm-l6/.
 ## M2.4: Pipeline Integration (Ingest → Embed → Assemble)
 
 ### M2.4.1 Temporary Orchestration (Website-side)
-- [ ] Website calls ingest, collects all chunks
-- [ ] Website batches chunks, calls embedding worker
-- [ ] Website calls assembly with chunks + embeddings
-- [ ] Display results
-- [ ] (Note: This is inefficient but ships M2 without Coordinator)
+- [x] Website calls ingest, collects all chunks
+- [x] Website batches chunks, calls embedding worker
+- [x] Website calls assembly with chunks + embeddings
+- [x] Display results
+- [x] (Note: This is inefficient but ships M2 without Coordinator)
 
 ### M2.4.2 Data Flow
-- [ ] Store chunks in memory during pipeline
-- [ ] Store embeddings as they return
-- [ ] Pass everything to assembly at end
+- [x] Store chunks in memory during pipeline
+- [x] Store embeddings as they return
+- [x] Pass everything to assembly at end
 - [ ] [T] Integration test: full pipeline works
 
 ---

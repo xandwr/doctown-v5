@@ -41,6 +41,7 @@ pub struct ChunkVector {
 }
 
 /// Client for calling the embedding worker.
+#[derive(Clone)]
 pub struct EmbeddingClient {
     base_url: String,
     client: reqwest::Client,

@@ -64,20 +64,20 @@ pub async fn run_pipeline(
             let (files_processed, files_skipped, chunks_created, collected_chunks) =
                 process_extracted_files(&extract_dir, context.clone(), sender.clone()).await?;
 
-            // 4. Embed the chunks in batches
+            // 4. Embed the chunks in batches (sequentially to avoid model contention)
             let chunks_embedded = if !collected_chunks.is_empty() {
                 let embedding_url = env::var("EMBEDDING_URL").unwrap_or_else(|_| "http://localhost:8000".to_string());
                 let embedding_client = EmbeddingClient::new(embedding_url);
 
-                // Split into smaller batches to avoid timeouts
-                const BATCH_SIZE: usize = 256;
+                // Larger batch size for better throughput (1024 chunks per batch)
+                const BATCH_SIZE: usize = 1024;
                 let mut total_embedded = 0;
 
+                // Process batches sequentially to avoid ONNX model contention
                 for (batch_num, chunk_batch) in collected_chunks.chunks(BATCH_SIZE).enumerate() {
-                    match embedding_client.embed_batch(
-                        format!("job_{}_batch_{}", context.job_id, batch_num),
-                        chunk_batch.to_vec(),
-                    ).await {
+                    let batch_id = format!("job_{}_batch_{}", context.job_id, batch_num);
+                    
+                    match embedding_client.embed_batch(batch_id, chunk_batch.to_vec()).await {
                         Ok((vectors, duration_ms)) => {
                             total_embedded += vectors.len();
                             let chunks_per_sec = if duration_ms > 0 {
@@ -89,7 +89,6 @@ pub async fn run_pipeline(
                                 batch_num + 1, vectors.len(), duration_ms, chunks_per_sec);
                         }
                         Err(e) => {
-                            // Log error but continue with other batches
                             eprintln!("Warning: Failed to embed batch {}: {}", batch_num + 1, e);
                         }
                     }

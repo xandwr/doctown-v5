@@ -51,7 +51,13 @@ class EmbeddingModel:
         
         sess_options = ort.SessionOptions()
         sess_options.intra_op_num_threads = settings.onnx_threads
+        sess_options.inter_op_num_threads = settings.onnx_threads
         sess_options.graph_optimization_level = ort.GraphOptimizationLevel.ORT_ENABLE_ALL
+        sess_options.execution_mode = ort.ExecutionMode.ORT_PARALLEL
+        
+        # Enable memory pattern optimization
+        sess_options.enable_mem_pattern = True
+        sess_options.enable_cpu_mem_arena = True
         
         self.session = ort.InferenceSession(
             str(model_file),
@@ -82,44 +88,54 @@ class EmbeddingModel:
         if self.session is None or self.tokenizer is None:
             raise RuntimeError("Model not loaded. Call load() first.")
         
-        # Tokenize
+        # Tokenize with optimized settings
         encoded = self.tokenizer(
             texts,
             padding=True,
             truncation=True,
             max_length=512,
-            return_tensors="np"
+            return_tensors="np",
+            return_token_type_ids=False  # Don't generate if not needed
         )
         
-        # Run inference
+        # Prepare inputs - avoid unnecessary copies
+        input_ids = encoded["input_ids"]
+        attention_mask = encoded["attention_mask"]
+        
+        # Convert to int64 in-place if needed
+        if input_ids.dtype != np.int64:
+            input_ids = input_ids.astype(np.int64)
+        if attention_mask.dtype != np.int64:
+            attention_mask = attention_mask.astype(np.int64)
+        
         ort_inputs = {
-            "input_ids": encoded["input_ids"].astype(np.int64),
-            "attention_mask": encoded["attention_mask"].astype(np.int64),
+            "input_ids": input_ids,
+            "attention_mask": attention_mask,
         }
         
         # Add token_type_ids if the model expects it
         if "token_type_ids" in [inp.name for inp in self.session.get_inputs()]:
-            ort_inputs["token_type_ids"] = encoded.get(
-                "token_type_ids", 
-                np.zeros_like(encoded["input_ids"])
-            ).astype(np.int64)
+            ort_inputs["token_type_ids"] = np.zeros_like(input_ids, dtype=np.int64)
         
+        # Run inference
         outputs = self.session.run(None, ort_inputs)
         
         # Get embeddings from the last hidden state
         # Shape: (batch_size, seq_len, hidden_dim)
         last_hidden_state = outputs[0]
         
-        # Mean pooling over sequence length
-        attention_mask = encoded["attention_mask"]
-        attention_mask_expanded = np.expand_dims(attention_mask, -1)
+        # Optimized mean pooling - avoid expand_dims
+        attention_mask_float = attention_mask.astype(np.float32)
+        attention_mask_expanded = attention_mask_float[:, :, np.newaxis]
+        
+        # Sum embeddings weighted by attention mask
         sum_embeddings = np.sum(last_hidden_state * attention_mask_expanded, axis=1)
-        sum_mask = np.clip(attention_mask_expanded.sum(axis=1), a_min=1e-9, a_max=None)
+        sum_mask = np.maximum(attention_mask_expanded.sum(axis=1), 1e-9)
         embeddings = sum_embeddings / sum_mask
         
-        # Normalize embeddings
-        norms = np.linalg.norm(embeddings, axis=1, keepdims=True)
-        embeddings = embeddings / np.clip(norms, a_min=1e-9, a_max=None)
+        # L2 normalize - optimized
+        norms = np.sqrt(np.sum(embeddings ** 2, axis=1, keepdims=True))
+        embeddings = embeddings / np.maximum(norms, 1e-9)
         
         return embeddings
     
