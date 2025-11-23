@@ -572,24 +572,24 @@
 - [x] Set up RunPod serverless endpoint
 - [x] Deploy ingest worker to RunPod
 - [x] Verify `/health` endpoint accessible
-- [ ] [T] Smoke test: ingest small repo via deployed endpoint
+- [x] [T] Smoke test: ingest small repo via deployed endpoint
 
 ### M1.12.2 Website Deployment
-- [ ] Configure Vercel project
-- [ ] Set environment variables (ingest worker URL)
-- [ ] Deploy to Vercel
-- [ ] Verify website accessible
-- [ ] [T] Smoke test: submit repo via deployed website
+- [x] Configure Vercel project
+- [x] Set environment variables (ingest worker URL)
+- [x] Deploy to Vercel
+- [x] Verify website accessible
+- [x] [T] Smoke test: submit repo via deployed website
 
 ### M1.12.3 Ship Gates
-- [ ] [S] Ingest worker health check passes
-- [ ] [S] Website loads without errors
-- [ ] [S] Can submit a real GitHub repo URL
-- [ ] [S] See streaming file detection events
-- [ ] [S] See streaming chunk creation events
-- [ ] [S] See final file tree with symbols
-- [ ] [S] Total time < 10s for 50-file repo
-- [ ] [S] No console errors in browser
+- [x] [S] Ingest worker health check passes
+- [x] [S] Website loads without errors
+- [x] [S] Can submit a real GitHub repo URL
+- [x] [S] See streaming file detection events
+- [x] [S] See streaming chunk creation events
+- [x] [S] See final file tree with symbols
+- [x] [S] Total time < 10s for 50-file repo (MILESTONE ACHIEVEMENT: ENTIRE ORT REPO PARSES IN ~1.5SECONDS ON PROD!!!)
+- [x] [S] No console errors in browser (mostly, 2025-11-23)
 
 ---
 
