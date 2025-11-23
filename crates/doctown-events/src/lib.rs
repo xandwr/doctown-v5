@@ -5,5 +5,5 @@
 pub mod envelope;
 pub mod ingest;
 
-pub use envelope::{Context, Envelope, Meta, Status};
+pub use envelope::{Context, Envelope, EventType, Meta, Status, ValidationError};
 pub use ingest::*;

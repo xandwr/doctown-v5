@@ -1,0 +1,17 @@
+---
+source: crates/doctown-events/src/ingest.rs
+assertion_line: 323
+expression: payload
+---
+{
+  "chunk_id": "chunk_deterministic1",
+  "file_path": "src/main.rs",
+  "language": "rust",
+  "byte_range": {
+    "start": 0,
+    "end": 150
+  },
+  "symbol_kind": "function",
+  "symbol_name": "main",
+  "content": "fn main() {\n    println!(\"Hello, world!\");\n}"
+}

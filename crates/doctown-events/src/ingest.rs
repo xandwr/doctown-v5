@@ -283,4 +283,68 @@ mod tests {
         let json = serde_json::to_value(&payload).unwrap();
         assert_eq!(json["error"], "Download failed");
     }
+
+    // --- Snapshot tests ---
+
+    #[test]
+    fn test_ingest_started_snapshot() {
+        let payload = IngestStartedPayload::new("https://github.com/example/awesome-project", "main")
+            .with_commit("abc123def456789");
+
+        insta::assert_json_snapshot!("ingest_started_payload", payload);
+    }
+
+    #[test]
+    fn test_ingest_file_detected_snapshot() {
+        let payload = IngestFileDetectedPayload::new("src/lib.rs", Language::Rust, 2048);
+
+        insta::assert_json_snapshot!("ingest_file_detected_payload", payload);
+    }
+
+    #[test]
+    fn test_ingest_file_skipped_snapshot() {
+        let payload = IngestFileSkippedPayload::new("data/large-binary.bin", SkipReason::Binary);
+
+        insta::assert_json_snapshot!("ingest_file_skipped_payload", payload);
+    }
+
+    #[test]
+    fn test_ingest_chunk_created_snapshot() {
+        let chunk_id = ChunkId::new("chunk_deterministic1").unwrap();
+        let payload = IngestChunkCreatedPayload::new(
+            chunk_id,
+            "src/main.rs",
+            Language::Rust,
+            ByteRange::new(0, 150),
+            "fn main() {\n    println!(\"Hello, world!\");\n}",
+        )
+        .with_symbol(SymbolKind::Function, "main");
+
+        insta::assert_json_snapshot!("ingest_chunk_created_payload", payload);
+    }
+
+    #[test]
+    fn test_ingest_completed_success_snapshot() {
+        let payload = IngestCompletedPayload::success(25, 5, 100, 3500).with_breakdown(vec![
+            LanguageCount {
+                language: Language::Rust,
+                file_count: 15,
+                chunk_count: 60,
+            },
+            LanguageCount {
+                language: Language::Python,
+                file_count: 10,
+                chunk_count: 40,
+            },
+        ]);
+
+        insta::assert_json_snapshot!("ingest_completed_success_payload", payload);
+    }
+
+    #[test]
+    fn test_ingest_completed_failed_snapshot() {
+        let payload = IngestCompletedPayload::failed("Repository not found: 404", 250);
+
+        insta::assert_json_snapshot!("ingest_completed_failed_payload", payload);
+    }
 }

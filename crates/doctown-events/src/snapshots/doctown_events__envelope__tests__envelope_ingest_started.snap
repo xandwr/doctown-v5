@@ -1,0 +1,21 @@
+---
+source: crates/doctown-events/src/envelope.rs
+assertion_line: 536
+expression: envelope
+---
+{
+  "event_id": "evt_test1234567890",
+  "event_type": "ingest.started.v1",
+  "timestamp": "2024-01-15T10:30:00Z",
+  "sequence": 42,
+  "context": {
+    "job_id": "job_abc123def456",
+    "repo_url": "https://github.com/example/repo",
+    "git_ref": "main",
+    "user_id": "user_42"
+  },
+  "meta": {},
+  "payload": {
+    "message": "Hello, Doctown!"
+  }
+}

@@ -1,0 +1,21 @@
+---
+source: crates/doctown-events/src/envelope.rs
+assertion_line: 556
+expression: envelope
+---
+{
+  "event_id": "evt_completed123",
+  "event_type": "ingest.completed.v1",
+  "timestamp": "2024-01-15T10:35:00Z",
+  "sequence": 100,
+  "context": {
+    "job_id": "job_abc123def456",
+    "repo_url": "https://github.com/example/repo",
+    "git_ref": "v1.0.0"
+  },
+  "meta": {},
+  "payload": {
+    "message": "Processing complete"
+  },
+  "status": "success"
+}

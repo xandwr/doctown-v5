@@ -1,0 +1,23 @@
+---
+source: crates/doctown-events/src/ingest.rs
+assertion_line: 341
+expression: payload
+---
+{
+  "files_processed": 25,
+  "files_skipped": 5,
+  "chunks_created": 100,
+  "duration_ms": 3500,
+  "language_breakdown": [
+    {
+      "language": "rust",
+      "file_count": 15,
+      "chunk_count": 60
+    },
+    {
+      "language": "python",
+      "file_count": 10,
+      "chunk_count": 40
+    }
+  ]
+}

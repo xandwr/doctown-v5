@@ -1,0 +1,12 @@
+---
+source: crates/doctown-events/src/ingest.rs
+assertion_line: 348
+expression: payload
+---
+{
+  "files_processed": 0,
+  "files_skipped": 0,
+  "chunks_created": 0,
+  "duration_ms": 250,
+  "error": "Repository not found: 404"
+}

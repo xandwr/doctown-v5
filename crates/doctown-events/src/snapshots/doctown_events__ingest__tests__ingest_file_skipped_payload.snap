@@ -1,0 +1,9 @@
+---
+source: crates/doctown-events/src/ingest.rs
+assertion_line: 308
+expression: payload
+---
+{
+  "file_path": "data/large-binary.bin",
+  "reason": "binary"
+}

@@ -40,3 +40,4 @@ futures-util = "0.3"
 
 # Testing
 pretty_assertions = "1"
+insta = { version = "1", features = ["json"] }

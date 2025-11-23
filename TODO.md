@@ -92,10 +92,10 @@
 - [x] Implement sequence number tracking per job
 - [x] [T] Unit tests for envelope creation
 - [x] [T] Unit tests for JSON serialization matches spec exactly
-- [ ] [T] Snapshot test comparing output to spec example
+- [x] [T] Snapshot test comparing output to spec example
 
 ### M1.2.2 Ingest Event Types (M1 only)
-- [ ] Define `EventType` enum (ingest events only for now)
+- [x] Define `EventType` enum (ingest events only for now)
 - [x] Define `IngestStartedPayload` struct
 - [x] Define `IngestFileDetectedPayload` struct
 - [x] Define `IngestFileSkippedPayload` struct
@@ -104,14 +104,14 @@
 - [x] Define `Status` enum (Success, Failed)
 - [x] Implement typed event constructors for each type
 - [x] [T] Unit tests for each payload serialization
-- [ ] [T] Snapshot tests comparing output to spec examples
+- [x] [T] Snapshot tests comparing output to spec examples
 
 ### M1.2.3 Event Validation
-- [ ] Implement `Envelope::validate()` method
-- [ ] Validate required fields are present
-- [ ] Validate status only on terminal events (.completed)
-- [ ] [T] Unit tests for valid envelopes pass
-- [ ] [T] Unit tests for invalid cases rejected
+- [x] Implement `Envelope::validate()` method
+- [x] Validate required fields are present
+- [x] Validate status only on terminal events (.completed)
+- [x] [T] Unit tests for valid envelopes pass
+- [x] [T] Unit tests for invalid cases rejected
 
 ---
 

@@ -1,0 +1,10 @@
+---
+source: crates/doctown-events/src/ingest.rs
+assertion_line: 301
+expression: payload
+---
+{
+  "file_path": "src/lib.rs",
+  "language": "rust",
+  "size_bytes": 2048
+}

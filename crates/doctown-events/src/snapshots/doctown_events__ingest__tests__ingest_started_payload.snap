@@ -1,0 +1,10 @@
+---
+source: crates/doctown-events/src/ingest.rs
+assertion_line: 294
+expression: payload
+---
+{
+  "repo_url": "https://github.com/example/awesome-project",
+  "git_ref": "main",
+  "commit_sha": "abc123def456789"
+}
