@@ -11,5 +11,5 @@ pub mod graph;
 pub mod label;
 
 pub use cluster::Clusterer;
-pub use graph::{Graph, Node, Edge, EdgeKind};
+pub use graph::{Graph, Node, Edge, EdgeKind, GraphBuilder, SymbolData};
 pub use label::ClusterLabeler;

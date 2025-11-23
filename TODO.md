@@ -798,13 +798,13 @@ ONNX model and tokenizer is in models/minilm-l6/.
 - [x] [T] Manual verification: labels make sense
 
 ### M2.3.4 Graph Construction
-- [ ] Define `Node` struct (symbol_id, metadata)
-- [ ] Define `Edge` struct (source, target, kind)
-- [ ] Build nodes from symbols
-- [ ] Build "calls" edges from call graph
-- [ ] Build "imports" edges from import data
-- [ ] [T] Unit test: graph construction
-- [ ] [T] Unit test: edge types correct
+- [x] Define `Node` struct (symbol_id, metadata)
+- [x] Define `Edge` struct (source, target, kind)
+- [x] Build nodes from symbols
+- [x] Build "calls" edges from call graph
+- [x] Build "imports" edges from import data
+- [x] [T] Unit test: graph construction
+- [x] [T] Unit test: edge types correct
 
 ### M2.3.5 Similarity Edges
 - [ ] Compute pairwise cosine similarity
