@@ -672,23 +672,28 @@ have them persist until that instance is shut down entirely. Perfect, solves the
 - [x] [T] Unit tests for Go call detection
 
 ### M2.1.3 Symbol Resolution
-- [ ] Build symbol table during extraction
-- [ ] Resolve local calls to symbol IDs
-- [ ] Mark external calls as unresolved (store name only)
-- [ ] Handle imports for resolution
-- [ ] [T] Unit test: local calls resolved
-- [ ] [T] Unit test: external calls marked unresolved
+- [x] Build symbol table during extraction
+- [x] Resolve local calls to symbol IDs
+- [x] Mark external calls as unresolved (store name only)
+- [x] Handle imports for resolution
+- [x] [T] Unit test: local calls resolved
+- [x] [T] Unit test: external calls marked unresolved
 
 ### M2.1.4 Import Extraction
-- [ ] Extract Rust `use` statements
-- [ ] Extract Python `import` and `from...import`
-- [ ] Normalize import paths
-- [ ] Associate imports with file/module
-- [ ] [T] Unit tests for import extraction
+- [x] Extract Rust `use` statements
+- [x] Extract Python `import` and `from...import`
+- [x] Extract TypeScript/JavaScript `import` statements
+- [x] Extract Go `import` statements
+- [x] Normalize import paths
+- [x] Associate imports with file/module
+- [x] [T] Unit tests for import extraction
 
 ---
 
 ## M2.2: Embedding Worker (`workers/embedding/`)
+
+We're going to actually run this on the RunPod CPU worker Pod since we keep it warm and loading the ONNX
+embeddings won't be an issue!
 
 ### M2.2.1 Python Project Setup
 - [ ] Create `workers/embedding/` directory

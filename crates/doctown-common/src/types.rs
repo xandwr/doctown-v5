@@ -199,6 +199,21 @@ pub struct Call {
     pub is_resolved: bool,
 }
 
+/// An import statement extracted from source code.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct Import {
+    /// The module/package being imported (e.g., "std::collections", "numpy", "./utils")
+    pub module_path: String,
+    /// Specific items imported (e.g., ["HashMap", "HashSet"]), or None for wildcard imports
+    pub imported_items: Option<Vec<String>>,
+    /// Alias for the import (e.g., "np" in "import numpy as np")
+    pub alias: Option<String>,
+    /// Byte range of the import statement
+    pub range: ByteRange,
+    /// Whether this is a wildcard import (e.g., "use std::*", "from x import *")
+    pub is_wildcard: bool,
+}
+
 /// The kind of call being made.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]

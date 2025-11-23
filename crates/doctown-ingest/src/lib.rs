@@ -11,9 +11,11 @@ pub mod calls;
 pub mod chunk;
 pub mod filter;
 pub mod github;
+pub mod imports;
 pub mod language;
 pub mod parsing;
 pub mod pipeline;
+pub mod resolution;
 pub mod symbol;
 pub mod traversal;
 pub mod api;
@@ -26,9 +28,11 @@ pub use filter::{
     MAX_FILE_SIZE, MAX_REPO_SIZE,
 };
 pub use github::{GitHubClient, GitHubUrl, RateLimitInfo, RefInfo, RepoMetadata};
+pub use imports::extract_imports;
 pub use language::detect_language;
 pub use parsing::{parse, Parser};
 pub use pipeline::run_pipeline;
+pub use resolution::{resolve_calls, SymbolTable};
 pub use symbol::{extract_symbols, Symbol};
 pub use traversal::{
     ancestors, child_by_field, child_text, collect_named_children_text, find_ancestor_by_kind,
