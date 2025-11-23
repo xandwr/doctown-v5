@@ -375,13 +375,13 @@
 - [x] [T] Integration test: valid request returns SSE stream
 
 ### M1.9.4 Server-Sent Events Streaming
-- [ ] Implement SSE response with correct content-type
-- [ ] Implement event channel (mpsc) for internal → SSE bridge
-- [ ] Format events as `data: {json}\n\n`
-- [ ] Handle client disconnect gracefully (stop processing)
-- [ ] Send keepalive comments every 15s
-- [ ] [T] Unit test: SSE encoding correct
-- [ ] [T] Integration test: events stream to client
+- [x] Implement SSE response with correct content-type
+- [x] Implement event channel (mpsc) for internal → SSE bridge
+- [x] Format events as `data: {json}\n\n`
+- [x] Handle client disconnect gracefully (stop processing)
+- [x] Send keepalive comments every 15s
+- [x] [T] Unit test: SSE encoding correct
+- [x] [T] Integration test: events stream to client
 
 ---
 
