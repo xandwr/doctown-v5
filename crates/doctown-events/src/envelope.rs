@@ -36,6 +36,23 @@ pub enum EventType {
     /// Emitted when ingest pipeline completes.
     #[serde(rename = "ingest.completed.v1")]
     IngestCompleted,
+
+    // Assembly events
+    /// Emitted when assembly worker starts.
+    #[serde(rename = "assembly.started.v1")]
+    AssemblyStarted,
+
+    /// Emitted when a cluster is created.
+    #[serde(rename = "assembly.cluster_created.v1")]
+    AssemblyClusterCreated,
+
+    /// Emitted when graph construction is complete.
+    #[serde(rename = "assembly.graph_completed.v1")]
+    AssemblyGraphCompleted,
+
+    /// Emitted when assembly worker completes.
+    #[serde(rename = "assembly.completed.v1")]
+    AssemblyCompleted,
 }
 
 impl EventType {
@@ -47,12 +64,16 @@ impl EventType {
             Self::IngestFileSkipped => "ingest.file_skipped.v1",
             Self::IngestChunkCreated => "ingest.chunk_created.v1",
             Self::IngestCompleted => "ingest.completed.v1",
+            Self::AssemblyStarted => "assembly.started.v1",
+            Self::AssemblyClusterCreated => "assembly.cluster_created.v1",
+            Self::AssemblyGraphCompleted => "assembly.graph_completed.v1",
+            Self::AssemblyCompleted => "assembly.completed.v1",
         }
     }
 
     /// Returns true if this event type is a terminal event (requires status).
     pub fn is_terminal(&self) -> bool {
-        matches!(self, Self::IngestCompleted)
+        matches!(self, Self::IngestCompleted | Self::AssemblyCompleted)
     }
 
     /// Attempts to parse an event type from a string.
@@ -63,6 +84,10 @@ impl EventType {
             "ingest.file_skipped.v1" => Some(Self::IngestFileSkipped),
             "ingest.chunk_created.v1" => Some(Self::IngestChunkCreated),
             "ingest.completed.v1" => Some(Self::IngestCompleted),
+            "assembly.started.v1" => Some(Self::AssemblyStarted),
+            "assembly.cluster_created.v1" => Some(Self::AssemblyClusterCreated),
+            "assembly.graph_completed.v1" => Some(Self::AssemblyGraphCompleted),
+            "assembly.completed.v1" => Some(Self::AssemblyCompleted),
             _ => None,
         }
     }

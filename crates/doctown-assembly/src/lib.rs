@@ -9,7 +9,9 @@
 pub mod cluster;
 pub mod graph;
 pub mod label;
+pub mod api;
 
 pub use cluster::Clusterer;
 pub use graph::{Graph, Node, Edge, EdgeKind, GraphBuilder, SymbolData};
 pub use label::ClusterLabeler;
+pub use api::{start_server, AssembleRequest, AssembleResponse};

@@ -821,19 +821,19 @@ ONNX model and tokenizer is in models/minilm-l6/.
 - [x] [T] Unit tests for each metric
 
 ### M2.3.7 Assembly Worker API
-- [ ] Set up Actix-web server
-- [ ] Implement `GET /health` endpoint
-- [ ] Implement `POST /assemble` endpoint
-- [ ] Define request schema (chunks, embeddings, symbol metadata)
-- [ ] Define response schema (graph, clusters, nodes with centrality)
-- [ ] [T] Integration test: full assembly pipeline
+- [x] Set up Actix-web server
+- [x] Implement `GET /health` endpoint
+- [x] Implement `POST /assemble` endpoint
+- [x] Define request schema (chunks, embeddings, symbol metadata)
+- [x] Define response schema (graph, clusters, nodes with centrality)
+- [x] [T] Integration test: full assembly pipeline
 
 ### M2.3.8 Assembly Events
-- [ ] Emit `assembly.started.v1`
-- [ ] Emit `assembly.cluster_created.v1` per cluster
-- [ ] Emit `assembly.graph_completed.v1`
-- [ ] Emit `assembly.completed.v1`
-- [ ] [T] Unit tests for event payloads
+- [x] Emit `assembly.started.v1`
+- [x] Emit `assembly.cluster_created.v1` per cluster
+- [x] Emit `assembly.graph_completed.v1`
+- [x] Emit `assembly.completed.v1`
+- [x] [T] Unit tests for event payloads
 
 ---
 
