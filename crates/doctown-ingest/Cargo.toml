@@ -22,6 +22,7 @@ tree-sitter-tags = "0.22.6"
 zip = "6.0.0"
 walkdir = "2.5.0"
 tempfile = "3.23.0"
+tokio-util = "0.7.17"
 
 [dev-dependencies]
 pretty_assertions = { workspace = true }

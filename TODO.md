@@ -392,11 +392,11 @@
 - [x] M1.10.3: Extract symbols for each file
 
 ### M1.10.1 Pipeline Orchestration
-- [ ] Wire up: receive request → validate → download → parse → stream
-- [ ] Create event emitter channel
-- [ ] Run pipeline in spawned task
-- [ ] Handle cancellation on client disconnect
-- [ ] [T] Unit test: pipeline runs to completion
+- [x] Wire up: receive request → validate → download → parse → stream
+- [x] Create event emitter channel
+- [x] Run pipeline in spawned task
+- [x] Handle cancellation on client disconnect
+- [x] [T] Unit test: pipeline runs to completion
 
 ### M1.10.2 Event Emission
 - [ ] Emit `ingest.started.v1` at pipeline start

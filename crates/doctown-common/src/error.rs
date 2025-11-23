@@ -40,6 +40,10 @@ pub enum DocError {
     /// Serialization or deserialization error.
     #[error("Serialization error: {0}")]
     Serialization(String),
+
+    /// An internal error occurred.
+    #[error("Internal error: {0}")]
+    Internal(String),
 }
 
 impl From<serde_json::Error> for DocError {

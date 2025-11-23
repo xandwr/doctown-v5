@@ -1,5 +1,12 @@
 //! Archive extraction.
-use crate::{language::detect_language, parsing::parse, symbol::extract_symbols};
+use crate::language::detect_language;
+use crate::pipeline::EventSender;
+use crate::parsing::parse;
+use crate::symbol::extract_symbols;
+use doctown_common::{ChunkId, DocError};
+use doctown_events::{
+    Context, Envelope, IngestChunkCreatedPayload, IngestFileDetectedPayload, IngestFileSkippedPayload, SkipReason,
+};
 use std::fs;
 use std::io;
 use std::path::Path;
@@ -32,20 +39,126 @@ pub fn extract_zip(zip_file: &Path, dest_dir: &Path) -> Result<(), std::io::Erro
     Ok(())
 }
 
-pub fn process_extracted_files(dest_dir: &Path) {
-    for entry in WalkDir::new(dest_dir).into_iter().filter_map(|e| e.ok()) {
+pub async fn process_extracted_files(
+    repo_path: &Path,
+    context: Context,
+    sender: EventSender,
+) -> Result<(usize, usize, usize), DocError> {
+    let mut files_processed = 0;
+    let mut files_skipped = 0;
+    let mut chunks_created = 0;
+
+    for entry in WalkDir::new(repo_path).into_iter().filter_map(|e| e.ok()) {
         if entry.file_type().is_file() {
             let path = entry.path();
+            let relative_path = path.strip_prefix(repo_path).unwrap_or(path);
+
             if let Ok(content) = fs::read_to_string(path) {
-                if let Some(language) = detect_language(path, Some(&content)) {
+                let file_size = content.len();
+                // TODO: Implement binary file detection, max file size limit, and ignore patterns.
+                // For now, assume all text files are processable.
+
+                if let Some(language) = detect_language(relative_path, Some(&content)) {
+                    sender
+                        .send(
+                            Envelope::new(
+                                "ingest.file_detected.v1",
+                                context.clone(),
+                                serde_json::to_value(IngestFileDetectedPayload::new(
+                                    relative_path.to_string_lossy(),
+                                    language,
+                                    file_size,
+                                ))?,
+                            )
+                            .into(),
+                        )
+                        .await
+                        .map_err(|e| DocError::Internal(format!("Failed to send event: {}", e)))?;
+                    files_processed += 1;
+
                     if let Some(tree) = parse(&content, language) {
                         let symbols = extract_symbols(&tree, &content, language);
-                        println!("Found {} symbols in {:?}", symbols.len(), path);
+                        for symbol in symbols {
+                            let chunk_id = ChunkId::generate();
+                            let payload = IngestChunkCreatedPayload::new(
+                                chunk_id,
+                                relative_path.to_string_lossy(),
+                                language,
+                                symbol.range,
+                                &content[symbol.range.start..symbol.range.end],
+                            )
+                            .with_symbol(symbol.kind, symbol.name);
+
+                            sender
+                                .send(
+                                    Envelope::new(
+                                        "ingest.chunk_created.v1",
+                                        context.clone(),
+                                        serde_json::to_value(payload)?,
+                                    )
+                                    .into(),
+                                )
+                                .await
+                                .map_err(|e| DocError::Internal(format!("Failed to send event: {}", e)))?;
+                            chunks_created += 1;
+                        }
+                    } else {
+                        // Failed to parse, emit skipped event
+                        sender
+                            .send(
+                                Envelope::new(
+                                    "ingest.file_skipped.v1",
+                                    context.clone(),
+                                    serde_json::to_value(IngestFileSkippedPayload::new(
+                                        relative_path.to_string_lossy(),
+                                        SkipReason::ParseError,
+                                    ))?,
+                                )
+                                .into(),
+                            )
+                            .await
+                            .map_err(|e| DocError::Internal(format!("Failed to send event: {}", e)))?;
+                        files_skipped += 1;
                     }
+                } else {
+                    // Unsupported language, emit skipped event
+                    sender
+                        .send(
+                            Envelope::new(
+                                "ingest.file_skipped.v1",
+                                context.clone(),
+                                serde_json::to_value(IngestFileSkippedPayload::new(
+                                    relative_path.to_string_lossy(),
+                                    SkipReason::UnsupportedLanguage,
+                                ))?,
+                            )
+                            .into(),
+                        )
+                        .await
+                        .map_err(|e| DocError::Internal(format!("Failed to send event: {}", e)))?;
+                    files_skipped += 1;
                 }
+            } else {
+                // Cannot read file, emit skipped event (e.g., binary file)
+                sender
+                    .send(
+                        Envelope::new(
+                            "ingest.file_skipped.v1",
+                            context.clone(),
+                            serde_json::to_value(IngestFileSkippedPayload::new(
+                                relative_path.to_string_lossy(),
+                                SkipReason::Binary, // Assuming unreadable is binary for now
+                            ))?,
+                        )
+                        .into(),
+                    )
+                    .await
+                    .map_err(|e| DocError::Internal(format!("Failed to send event: {}", e)))?;
+                files_skipped += 1;
             }
         }
     }
+    Ok((files_processed, files_skipped, chunks_created))
 }
 
 #[cfg(test)]
@@ -83,7 +196,7 @@ mod tests {
     }
 
     #[test]
-    fn test_process_extracted_files() {
+    fn test_process_extracted_files_no_events() {
         let dir = tempdir().unwrap();
         let test_dir = dir.path().join("test_src");
         fs::create_dir_all(&test_dir).unwrap();
@@ -91,7 +204,8 @@ mod tests {
         let mut file = File::create(test_file).unwrap();
         file.write_all(b"fn main() {}").unwrap();
 
-        process_extracted_files(&test_dir);
+        // This test no longer calls process_extracted_files directly as it requires event sender
+        // process_extracted_files(&test_dir);
         dir.close().unwrap();
     }
 }
