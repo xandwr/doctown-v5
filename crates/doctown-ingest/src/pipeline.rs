@@ -64,20 +64,45 @@ pub async fn run_pipeline(
             let (files_processed, files_skipped, chunks_created, collected_chunks) =
                 process_extracted_files(&extract_dir, context.clone(), sender.clone()).await?;
 
-            // 4. Embed the chunks in batches (sequentially to avoid model contention)
+            // 4. Embed the chunks in batches (parallel with concurrency limit)
             let chunks_embedded = if !collected_chunks.is_empty() {
                 let embedding_url = env::var("EMBEDDING_URL").unwrap_or_else(|_| "http://localhost:8000".to_string());
                 let embedding_client = EmbeddingClient::new(embedding_url);
 
-                // Larger batch size for better throughput (1024 chunks per batch)
-                const BATCH_SIZE: usize = 1024;
-                let mut total_embedded = 0;
+                // Small batch size optimized for CPU sequential processing (8 chunks per batch)
+                const BATCH_SIZE: usize = 8;
+                // Process up to 8 batches concurrently for maximum throughput without overwhelming CPU
+                const MAX_CONCURRENT: usize = 8;
 
-                // Process batches sequentially to avoid ONNX model contention
-                for (batch_num, chunk_batch) in collected_chunks.chunks(BATCH_SIZE).enumerate() {
-                    let batch_id = format!("job_{}_batch_{}", context.job_id, batch_num);
-                    
-                    match embedding_client.embed_batch(batch_id, chunk_batch.to_vec()).await {
+                // Collect all batches
+                let batches: Vec<_> = collected_chunks
+                    .chunks(BATCH_SIZE)
+                    .enumerate()
+                    .map(|(batch_num, chunk_batch)| {
+                        let batch_id = format!("job_{}_batch_{}", context.job_id, batch_num);
+                        (batch_num, batch_id, chunk_batch.to_vec())
+                    })
+                    .collect();
+
+                let mut total_embedded = 0;
+                
+                // Process batches in parallel with concurrency limit
+                use futures_util::stream::{self, StreamExt};
+                
+                let results = stream::iter(batches)
+                    .map(|(batch_num, batch_id, chunk_batch)| {
+                        let client = embedding_client.clone();
+                        async move {
+                            (batch_num, client.embed_batch(batch_id, chunk_batch).await)
+                        }
+                    })
+                    .buffer_unordered(MAX_CONCURRENT)
+                    .collect::<Vec<_>>()
+                    .await;
+
+                // Process results
+                for (batch_num, result) in results {
+                    match result {
                         Ok((vectors, duration_ms)) => {
                             total_embedded += vectors.len();
                             let chunks_per_sec = if duration_ms > 0 {
@@ -98,6 +123,8 @@ pub async fn run_pipeline(
             } else {
                 0
             };
+
+            eprintln!("Embedding complete: {} chunks embedded", chunks_embedded);
 
             dir.close()?;
             Ok((files_processed, files_skipped, chunks_created, chunks_embedded))
@@ -120,6 +147,9 @@ pub async fn run_pipeline(
             } else {
                 payload
             };
+
+            eprintln!("Sending ingest.completed.v1 event: {} files, {} chunks, {} embedded", 
+                      files_processed, chunks_created, chunks_embedded);
 
             sender
                 .send(

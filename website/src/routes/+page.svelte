@@ -19,6 +19,14 @@
 	let symbols = $state<SymbolMetadata[]>([]);
 	let embeddings = $state<Map<string, number[]>>(new Map());
 	let assemblyResult = $state<any>(null);
+	
+	// Stats for display without storing everything
+	let stats = $state({
+		filesProcessed: 0,
+		filesSkipped: 0,
+		chunksCreated: 0,
+		chunksEmbedded: 0
+	});
 
 	async function handleSubmit(repoUrl: string) {
 		console.log('Submitting repo:', repoUrl);
@@ -30,6 +38,7 @@
 		symbols = [];
 		embeddings = new Map();
 		assemblyResult = null;
+		stats = { filesProcessed: 0, filesSkipped: 0, chunksCreated: 0, chunksEmbedded: 0 };
 
 		const apiUrl = import.meta.env.VITE_INGEST_API_URL || 'http://localhost:3000';
 		const embeddingUrl = import.meta.env.VITE_EMBEDDING_API_URL || 'http://localhost:8000';
@@ -63,21 +72,27 @@
 			sseClient = new SSEClient(
 				`${apiUrl}/ingest?repo_url=${encodeURIComponent(repoUrl)}&job_id=${jobId}`,
 				{
-					onMessage: (event: any) => {
-						const eventType = event.event_type;
-						if (eventType?.includes('completed') || eventType?.includes('started')) {
-							console.log('SSE event received:', event);
+				onMessage: (event: any) => {
+					const eventType = event.event_type;
+					
+					// Only store important events to avoid memory issues
+					if (eventType?.includes('completed') || eventType?.includes('started') || eventType?.includes('failed')) {
+						console.log('SSE event received:', event);
+						events.push(event);
+						// Keep only last 50 events to prevent memory bloat
+						if (events.length > 50) {
+							events.shift();
 						}
-						events = [...events, event];
+					}
+					
+					// Track chunks (store ID only, not content)
+					if (eventType === 'ingest.chunk_created.v1') {
+						chunks.push({
+							chunk_id: event.payload.chunk_id,
+							content: '' // Don't store content to save memory
+						});
 						
-						// Collect chunks
-						if (eventType === 'ingest.chunk_created.v1') {
-							chunks.push({
-								chunk_id: event.payload.chunk_id,
-								content: event.payload.content
-							});
-							
-							// Build symbol metadata if this is a symbol chunk
+						// Build symbol metadata if this is a symbol chunk
 							if (event.payload.symbol_id) {
 								const existingSymbol = symbols.find(s => s.symbol_id === event.payload.symbol_id);
 								if (!existingSymbol) {
@@ -99,12 +114,13 @@
 						
 						// Complete ingest stage on completion
 						if (eventType === 'ingest.completed.v1') {
-							console.log(`Ingest complete: collected ${chunks.length} chunks, ${symbols.length} symbols`);
+							console.log(`Ingest complete: ${chunks.length} chunks, ${symbols.length} symbols`);
 							if (sseClient) {
 								sseClient.close();
 								sseClient = null;
 							}
-							resolve();
+							// Small delay to ensure stream closes gracefully
+							setTimeout(() => resolve(), 100);
 						}
 					},
 					onError: (error) => {

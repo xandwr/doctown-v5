@@ -3,7 +3,7 @@
 use actix_cors::Cors;
 use actix_web::{
     get, middleware, post,
-    web::{Data, Json},
+    web::{Data, Json, PayloadConfig},
     App, HttpResponse, HttpServer, Responder,
 };
 use doctown_events::{
@@ -470,6 +470,10 @@ pub async fn start_server(host: &str, port: u16) -> std::io::Result<()> {
 
         App::new()
             .app_data(Data::new(state.clone()))
+            .app_data(
+                // Increase JSON payload limit to 100MB for large embedding batches
+                PayloadConfig::new(100 * 1024 * 1024)
+            )
             .wrap(middleware::Logger::default())
             .wrap(cors)
             .service(health)

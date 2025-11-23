@@ -130,8 +130,8 @@ async fn handle_ingest_request(
         }
     };
 
-    // Create event channel
-    let (tx, mut rx) = mpsc::channel::<Envelope<serde_json::Value>>(100);
+    // Create event channel with large buffer to prevent deadlock during parallel embedding
+    let (tx, mut rx) = mpsc::channel::<Envelope<serde_json::Value>>(1000);
     let cancel_token = CancellationToken::new();
     let cancel_token_clone = cancel_token.clone();
 
@@ -162,6 +162,10 @@ async fn handle_ingest_request(
 
                                     // Check if this is a terminal event
                                     if envelope.event_type.ends_with(".completed.v1") {
+                                        // Give the client time to process the completion event before closing
+                                        // Send a final newline to ensure the message is flushed
+                                        yield Ok(web::Bytes::from("\n"));
+                                        tokio::time::sleep(tokio::time::Duration::from_millis(500)).await;
                                         break;
                                     }
                                 }

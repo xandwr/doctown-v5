@@ -53,9 +53,11 @@ impl EmbeddingClient {
     /// # Arguments
     /// * `base_url` - Base URL of the embedding worker (e.g., "http://localhost:8000")
     pub fn new(base_url: impl Into<String>) -> Self {
-        // Create client with longer timeout for large batches
+        // Create client optimized for parallel requests with connection pooling
         let client = reqwest::Client::builder()
-            .timeout(std::time::Duration::from_secs(120)) // 2 minutes
+            .timeout(std::time::Duration::from_secs(30)) // 30s timeout per request
+            .pool_max_idle_per_host(8) // Keep connections alive for reuse
+            .pool_idle_timeout(std::time::Duration::from_secs(90))
             .build()
             .unwrap_or_else(|_| reqwest::Client::new());
 

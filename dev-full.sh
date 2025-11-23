@@ -14,14 +14,43 @@ NC='\033[0m' # No Color
 
 echo -e "${BLUE}Starting Doctown v5 Full Pipeline...${NC}"
 
+# Ports used by services
+PORTS=(3000 8000 3001 5173)
+
+# Function to kill processes on ports
+kill_port() {
+    local port=$1
+    local pids=$(lsof -ti:$port 2>/dev/null || true)
+    if [ -n "$pids" ]; then
+        echo -e "${YELLOW}Killing process on port $port (PID: $pids)${NC}"
+        kill -9 $pids 2>/dev/null || true
+    fi
+}
+
 # Function to cleanup on exit
 cleanup() {
     echo -e "\n${YELLOW}Shutting down services...${NC}"
+    
+    # Kill background jobs
     kill $(jobs -p) 2>/dev/null || true
+    
+    # Kill any lingering processes on our ports
+    for port in "${PORTS[@]}"; do
+        kill_port $port
+    done
+    
+    echo -e "${GREEN}Server shutdown complete${NC}"
     exit
 }
 
 trap cleanup SIGINT SIGTERM
+
+# Clean up any existing processes on our ports before starting
+echo -e "${YELLOW}Checking for lingering processes...${NC}"
+for port in "${PORTS[@]}"; do
+    kill_port $port
+done
+sleep 1
 
 # Check if embedding worker dependencies are installed
 if [ ! -d "workers/embedding/.venv" ]; then
