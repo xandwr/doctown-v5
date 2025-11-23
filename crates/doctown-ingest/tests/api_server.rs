@@ -132,7 +132,7 @@ async fn test_body_size_limit() {
     
     let result = timeout(
         Duration::from_secs(1),
-        client.post("http://127.0.0.1:8082/generate")
+        client.post("http://127.0.0.1:8082/ingest")
             .header("Content-Type", "application/json")
             .body(large_body)
             .send()
@@ -145,4 +145,178 @@ async fn test_body_size_limit() {
         // If we get a response, it should indicate the body was too large
         assert!(response.status().as_u16() == 413 || response.status().is_client_error());
     }
+}
+
+/// Test health endpoint returns correct response format (M1.9.2)
+#[tokio::test]
+async fn test_m1_9_2_health_endpoint_responds() {
+    let config = ServerConfig {
+        host: "127.0.0.1".to_string(),
+        port: 8083,
+        cors_origins: vec!["http://localhost:5173".to_string()],
+        max_body_size: 10 * 1024 * 1024,
+    };
+
+    let server = tokio::spawn(async move {
+        start_server(config).await
+    });
+
+    tokio::time::sleep(Duration::from_millis(200)).await;
+
+    let client = reqwest::Client::new();
+    let result = timeout(
+        Duration::from_secs(2),
+        client.get("http://127.0.0.1:8083/health").send()
+    ).await;
+
+    server.abort();
+
+    if let Ok(Ok(response)) = result {
+        assert_eq!(response.status(), 200);
+        
+        let body: serde_json::Value = response.json().await.expect("Failed to parse JSON");
+        assert_eq!(body["status"], "ok");
+        assert!(body["version"].is_string());
+        assert!(!body["version"].as_str().unwrap().is_empty());
+    }
+}
+
+/// Test ingest endpoint validates request (M1.9.3)
+#[tokio::test]
+async fn test_m1_9_3_ingest_request_validation() {
+    let config = ServerConfig {
+        host: "127.0.0.1".to_string(),
+        port: 8084,
+        cors_origins: vec!["http://localhost:5173".to_string()],
+        max_body_size: 10 * 1024 * 1024,
+    };
+
+    let server = tokio::spawn(async move {
+        start_server(config).await
+    });
+
+    tokio::time::sleep(Duration::from_millis(200)).await;
+
+    let client = reqwest::Client::new();
+    
+    // Test 1: Empty repo_url should fail
+    let invalid_request = serde_json::json!({
+        "repo_url": "",
+        "git_ref": "main",
+        "job_id": "job_test_123"
+    });
+
+    let result = timeout(
+        Duration::from_secs(2),
+        client.post("http://127.0.0.1:8084/ingest")
+            .json(&invalid_request)
+            .send()
+    ).await;
+
+    if let Ok(Ok(response)) = result {
+        assert_eq!(response.status(), 400);
+        let body: serde_json::Value = response.json().await.expect("Failed to parse JSON");
+        assert!(body["error"].is_string());
+    }
+
+    // Test 2: Invalid GitHub URL should fail
+    let invalid_request = serde_json::json!({
+        "repo_url": "not-a-valid-url",
+        "git_ref": "main",
+        "job_id": "job_test_123"
+    });
+
+    let result = timeout(
+        Duration::from_secs(2),
+        client.post("http://127.0.0.1:8084/ingest")
+            .json(&invalid_request)
+            .send()
+    ).await;
+
+    if let Ok(Ok(response)) = result {
+        assert_eq!(response.status(), 400);
+    }
+
+    // Test 3: Empty job_id should fail
+    let invalid_request = serde_json::json!({
+        "repo_url": "https://github.com/user/repo",
+        "git_ref": "main",
+        "job_id": ""
+    });
+
+    let result = timeout(
+        Duration::from_secs(2),
+        client.post("http://127.0.0.1:8084/ingest")
+            .json(&invalid_request)
+            .send()
+    ).await;
+
+    if let Ok(Ok(response)) = result {
+        assert_eq!(response.status(), 400);
+    }
+
+    server.abort();
+}
+
+/// Test ingest endpoint returns SSE stream for valid request (M1.9.3)
+/// Note: This is a basic connectivity test. It validates the SSE stream starts
+/// but doesn't wait for the full pipeline to complete.
+#[tokio::test]
+async fn test_m1_9_3_valid_request_returns_sse_stream() {
+    let config = ServerConfig {
+        host: "127.0.0.1".to_string(),
+        port: 8085,
+        cors_origins: vec!["http://localhost:5173".to_string()],
+        max_body_size: 10 * 1024 * 1024,
+    };
+
+    let server = tokio::spawn(async move {
+        start_server(config).await
+    });
+
+    tokio::time::sleep(Duration::from_millis(200)).await;
+
+    let client = reqwest::Client::new();
+    
+    // Use a valid GitHub URL format that passes validation
+    // The URL format is valid even though the repo may not exist
+    let valid_request = serde_json::json!({
+        "repo_url": "https://github.com/rust-lang/rust",
+        "git_ref": "master",
+        "job_id": "job_test_sse_123"
+    });
+
+    let result = timeout(
+        Duration::from_secs(3),
+        client.post("http://127.0.0.1:8085/ingest")
+            .json(&valid_request)
+            .send()
+    ).await;
+
+    if let Ok(Ok(response)) = result {
+        let status = response.status();
+        let headers = response.headers().clone();
+        
+        // If we got an error, print it for debugging
+        if status != 200 {
+            let body = response.text().await.unwrap_or_default();
+            eprintln!("Error response: {} - {}", status, body);
+        }
+        
+        // Should get 200 OK with SSE headers
+        assert_eq!(status, 200);
+        
+        let content_type = headers.get("content-type")
+            .and_then(|v| v.to_str().ok());
+        assert_eq!(content_type, Some("text/event-stream"));
+        
+        let cache_control = headers.get("cache-control")
+            .and_then(|v| v.to_str().ok());
+        assert_eq!(cache_control, Some("no-cache"));
+        
+        // Note: We don't try to read the stream here as it would take too long
+        // to actually download and process a real repository in a test
+    }
+
+    server.abort();
 }

@@ -1,12 +1,15 @@
 use actix_cors::Cors;
 use actix_web::{web, App, HttpResponse, HttpServer, Responder};
-use serde::Deserialize;
-use std::io::Write;
-use tokio::sync::broadcast;
-use url::Url;
-use futures_util::StreamExt;
+use serde::{Deserialize, Serialize};
+use tokio::sync::mpsc;
 use async_stream::stream;
 use tokio::signal;
+use tokio_util::sync::CancellationToken;
+
+use crate::github::GitHubUrl;
+use crate::pipeline::run_pipeline;
+use doctown_common::JobId;
+use doctown_events::Envelope;
 
 /// Configuration for the API server
 #[derive(Clone)]
@@ -32,110 +35,148 @@ impl Default for ServerConfig {
     }
 }
 
-struct AppState {
-    sender: broadcast::Sender<String>,
+/// Request body for the /ingest endpoint
+#[derive(Debug, Deserialize, Serialize)]
+pub struct IngestRequest {
+    /// GitHub repository URL
+    pub repo_url: String,
+    /// Git reference (branch, tag, or commit)
+    #[serde(default = "default_git_ref")]
+    pub git_ref: String,
+    /// Job ID for tracking
+    pub job_id: String,
 }
 
-#[derive(Deserialize)]
-struct GenerateRequest {
-    repo_url: String,
+fn default_git_ref() -> String {
+    "main".to_string()
 }
 
-async fn events(data: web::Data<AppState>) -> impl Responder {
-    let mut receiver = data.sender.subscribe();
+/// Response body for validation errors
+#[derive(Debug, Serialize)]
+pub struct ErrorResponse {
+    pub error: String,
+}
 
+impl IngestRequest {
+    /// Validate the request fields
+    pub fn validate(&self) -> Result<(), String> {
+        // Validate repo_url
+        if self.repo_url.is_empty() {
+            return Err("repo_url cannot be empty".to_string());
+        }
+
+        // Try to parse as GitHub URL
+        if let Err(e) = GitHubUrl::parse(&self.repo_url) {
+            return Err(format!("Invalid GitHub URL: {}", e));
+        }
+
+        // Validate job_id
+        if self.job_id.is_empty() {
+            return Err("job_id cannot be empty".to_string());
+        }
+
+        // Validate job_id format
+        if let Err(e) = JobId::new(&self.job_id) {
+            return Err(format!("Invalid job_id: {}", e));
+        }
+
+        Ok(())
+    }
+}
+
+/// POST /ingest endpoint handler
+/// 
+/// Validates the request, runs the ingest pipeline, and streams events via SSE.
+async fn ingest(req: web::Json<IngestRequest>) -> impl Responder {
+    // Validate request
+    if let Err(e) = req.validate() {
+        return HttpResponse::BadRequest()
+            .json(ErrorResponse { error: e });
+    }
+
+    // Parse job_id and github_url
+    let job_id = match JobId::new(&req.job_id) {
+        Ok(id) => id,
+        Err(e) => {
+            return HttpResponse::BadRequest()
+                .json(ErrorResponse { error: format!("Invalid job_id: {}", e) });
+        }
+    };
+
+    let github_url = match GitHubUrl::parse(&req.repo_url) {
+        Ok(mut url) => {
+            // Set git_ref if provided and not default
+            if req.git_ref != "main" && !req.git_ref.is_empty() {
+                url.git_ref = Some(req.git_ref.clone());
+            }
+            url
+        }
+        Err(e) => {
+            return HttpResponse::BadRequest()
+                .json(ErrorResponse { error: format!("Invalid repo_url: {}", e) });
+        }
+    };
+
+    // Create event channel
+    let (tx, mut rx) = mpsc::channel::<Envelope<serde_json::Value>>(100);
+    let cancel_token = CancellationToken::new();
+    let cancel_token_clone = cancel_token.clone();
+
+    // Spawn pipeline task
+    tokio::spawn(async move {
+        if let Err(e) = run_pipeline(job_id, &github_url, tx, cancel_token_clone).await {
+            eprintln!("Pipeline error: {}", e);
+        }
+    });
+
+    // Create SSE stream
     let stream = stream! {
-        while let Ok(msg) = receiver.recv().await {
-            yield Ok(web::Bytes::from(format!("data: {}\n\n", msg))) as Result<web::Bytes, actix_web::Error>;
+        // Send keepalive comment every 15s
+        let mut keepalive = tokio::time::interval(tokio::time::Duration::from_secs(15));
+        keepalive.set_missed_tick_behavior(tokio::time::MissedTickBehavior::Skip);
+
+        loop {
+            tokio::select! {
+                _ = keepalive.tick() => {
+                    yield Ok::<_, actix_web::Error>(web::Bytes::from(": keepalive\n\n"));
+                }
+                event = rx.recv() => {
+                    match event {
+                        Some(envelope) => {
+                            match serde_json::to_string(&envelope) {
+                                Ok(json) => {
+                                    yield Ok(web::Bytes::from(format!("data: {}\n\n", json)));
+                                    
+                                    // Check if this is a terminal event
+                                    if envelope.event_type.ends_with(".completed.v1") {
+                                        break;
+                                    }
+                                }
+                                Err(e) => {
+                                    eprintln!("Failed to serialize event: {}", e);
+                                }
+                            }
+                        }
+                        None => {
+                            // Channel closed
+                            break;
+                        }
+                    }
+                }
+            }
         }
     };
 
     HttpResponse::Ok()
         .insert_header(("Content-Type", "text/event-stream"))
+        .insert_header(("Cache-Control", "no-cache"))
+        .insert_header(("X-Accel-Buffering", "no"))
         .streaming(stream)
 }
 
-async fn generate(
-    req: web::Json<GenerateRequest>,
-    data: web::Data<AppState>,
-) -> impl Responder {
-    let repo_url = req.repo_url.clone();
-    let sender = data.sender.clone();
-
-    tokio::spawn(async move {
-        let _ = sender.send("Starting download...".to_string());
-
-        let url = match Url::parse(&repo_url) {
-            Ok(url) => url,
-            Err(_) => {
-                let _ = sender.send("Error: Invalid URL format".to_string());
-                return;
-            }
-        };
-
-        let path_segments: Vec<&str> = url.path_segments().map_or(vec![], |s| s.collect());
-        if path_segments.len() < 2 {
-            let _ = sender.send("Error: Invalid GitHub repository URL".to_string());
-            return;
-        }
-
-        let owner = &path_segments[0];
-        let repo = &path_segments[1];
-        let download_url =
-            format!("https://github.com/{}/{}/archive/refs/heads/main.zip", owner, repo);
-        let zip_file_name = format!("{}.zip", repo);
-
-        let _ = sender.send(format!("Downloading from: {}", download_url));
-
-        let response = match reqwest::get(&download_url).await {
-            Ok(res) => res,
-            Err(_) => {
-                let _ = sender.send("Error: Failed to start download".to_string());
-                return;
-            }
-        };
-
-        if !response.status().is_success() {
-            let _ = sender.send(format!(
-                "Error: GitHub returned non-success status: {}",
-                response.status()
-            ));
-            return;
-        }
-
-        let mut file = match std::fs::File::create(&zip_file_name) {
-            Ok(f) => f,
-            Err(_) => {
-                let _ = sender.send("Error: Failed to create zip file".to_string());
-                return;
-            }
-        };
-
-        let mut stream = response.bytes_stream();
-        while let Some(chunk_result) = stream.next().await {
-            match chunk_result {
-                Ok(chunk) => {
-                    if let Err(_) = file.write_all(&chunk) {
-                        let _ = sender.send("Error: Failed to write to zip file".to_string());
-                        return;
-                    }
-                }
-                Err(_) => {
-                    let _ = sender.send("Error: Failed to download chunk".to_string());
-                    return;
-                }
-            }
-        }
-        
-        let _ = sender.send(format!("Successfully downloaded and saved {}", zip_file_name));
-
-        let _ = sender.send(format!("success: {}", zip_file_name));
-    });
-
-    HttpResponse::Ok().body("Request received, processing started.")
-}
-
 /// Health check endpoint handler
+/// 
+/// GET /health returns {"status": "ok", "version": "..."}
 async fn health() -> impl Responder {
     HttpResponse::Ok().json(serde_json::json!({
         "status": "ok",
@@ -155,14 +196,13 @@ pub async fn start_server(config: ServerConfig) -> std::io::Result<()> {
     println!("Max request body size: {} bytes", config.max_body_size);
 
     let server = HttpServer::new(move || {
-        let (sender, _) = broadcast::channel(100);
-        let app_state = web::Data::new(AppState {
-            sender: sender.clone(),
-        });
-
         // Build CORS middleware
         let mut cors = Cors::default()
             .allowed_methods(vec!["GET", "POST", "OPTIONS"])
+            .allowed_headers(vec![
+                actix_web::http::header::CONTENT_TYPE,
+                actix_web::http::header::ACCEPT,
+            ])
             .supports_credentials()
             .max_age(3600);
 
@@ -174,10 +214,8 @@ pub async fn start_server(config: ServerConfig) -> std::io::Result<()> {
         App::new()
             .wrap(cors)
             .app_data(web::PayloadConfig::new(config.max_body_size))
-            .app_data(app_state.clone())
             .route("/health", web::get().to(health))
-            .route("/generate", web::post().to(generate))
-            .route("/events", web::get().to(events))
+            .route("/ingest", web::post().to(ingest))
     })
         .bind(&bind_addr)?
         .run();

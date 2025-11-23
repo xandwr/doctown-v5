@@ -355,13 +355,13 @@
 - [x] [T] Unit test: server starts and stops cleanly
 
 ### M1.9.2 Health Endpoint
-- [ ] Implement `GET /health` endpoint
-- [ ] Return `{"status": "ok", "version": "..."}`
-- [ ] [T] Integration test: health endpoint responds
+- [x] Implement `GET /health` endpoint
+- [x] Return `{"status": "ok", "version": "..."}`
+- [x] [T] Integration test: health endpoint responds
 
 ### M1.9.3 Ingest Endpoint
-- [ ] Implement `POST /ingest` endpoint
-- [ ] Define request schema:
+- [x] Implement `POST /ingest` endpoint
+- [x] Define request schema:
   ```json
   {
     "repo_url": "https://github.com/user/repo",
@@ -369,10 +369,10 @@
     "job_id": "job_abc123"
   }
   ```
-- [ ] Implement request validation
-- [ ] Return SSE stream of events
-- [ ] [T] Unit test: request validation
-- [ ] [T] Integration test: valid request returns SSE stream
+- [x] Implement request validation
+- [x] Return SSE stream of events
+- [x] [T] Unit test: request validation
+- [x] [T] Integration test: valid request returns SSE stream
 
 ### M1.9.4 Server-Sent Events Streaming
 - [ ] Implement SSE response with correct content-type
