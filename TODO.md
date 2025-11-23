@@ -567,11 +567,11 @@
 ## M1.12: Deployment - Milestone 1
 
 ### M1.12.1 Ingest Worker Deployment
-- [ ] Create Dockerfile for ingest worker
-- [ ] Build and test Docker image locally
-- [ ] Set up RunPod serverless endpoint
-- [ ] Deploy ingest worker to RunPod
-- [ ] Verify `/health` endpoint accessible
+- [x] Create Dockerfile for ingest worker
+- [x] Build and test Docker image locally
+- [x] Set up RunPod serverless endpoint
+- [x] Deploy ingest worker to RunPod
+- [x] Verify `/health` endpoint accessible
 - [ ] [T] Smoke test: ingest small repo via deployed endpoint
 
 ### M1.12.2 Website Deployment
