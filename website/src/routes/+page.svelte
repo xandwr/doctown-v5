@@ -1,6 +1,7 @@
 <script lang="ts">
 	import RepoInput from '$lib/components/RepoInput.svelte';
 	import EventLog from '$lib/components/EventLog.svelte';
+	import StatsSummary from '$lib/components/StatsSummary.svelte';
 	import { SSEClient } from '$lib/sse-client';
 
 	let isLoading = $state(false);
@@ -101,6 +102,7 @@
 		{/if}
 
 		{#if events.length > 0}
+			<StatsSummary {events} {isLoading} />
 			<EventLog {events} {isLoading} />
 		{/if}
 	</div>

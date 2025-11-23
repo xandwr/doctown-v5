@@ -514,13 +514,19 @@
 - [x] Millisecond-precision timestamps
 - [x] Auto-scroll with manual override toggle
 - [x] Live streaming indicator
-- [ ] Show statistics summary (files detected, chunks created, language breakdown)
+- [x] Show statistics summary (files detected, chunks created, language breakdown)
+- [x] Statistics summary panel with:
+  - [x] Status indicator (processing/completed/failed)
+  - [x] Main stats grid (files processed, chunks created, files skipped, total files)
+  - [x] Processing time and per-chunk metrics
+  - [x] Language breakdown with progress bars
+  - [x] Skip reasons breakdown
 - [ ] [T] Component test: progress updates
 
 ### M1.11.5 Results Display
 - [x] Create terminal-style event log component (EventLog.svelte)
 - [x] Show event summaries (not raw JSON)
-- [ ] Create statistics summary panel
+- [x] Create statistics summary panel (StatsSummary.svelte)
 - [ ] Create file tree component
 - [ ] Show all detected files with language icons
 - [ ] Show symbol count per file
