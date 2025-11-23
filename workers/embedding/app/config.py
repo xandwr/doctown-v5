@@ -19,10 +19,10 @@ class Settings(BaseSettings):
     model_path: str = "../../models/minilm-l6"
     embedding_dim: int = 384
     
-    # Batching - conservative sizes to prevent memory exhaustion
-    min_batch_size: int = 8
-    max_batch_size: int = 64
-    batch_timeout_ms: int = 500
+    # Batching - small batches optimized for CPU sequential processing
+    min_batch_size: int = 1
+    max_batch_size: int = 8
+    batch_timeout_ms: int = 100
     
     # Memory management
     max_memory_percent: float = 70.0  # Don't exceed 70% of available RAM
