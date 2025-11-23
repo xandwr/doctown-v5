@@ -778,17 +778,17 @@ ONNX model and tokenizer is in models/minilm-l6/.
 ## M2.3: Semantic Assembly (`doctown-assembly`)
 
 ### M2.3.1 Crate Setup
-- [ ] Create `crates/doctown-assembly/`
-- [ ] Add dependencies: ndarray, linfa (for clustering)
-- [ ] Set up module structure
+- [x] Create `crates/doctown-assembly/`
+- [x] Add dependencies: ndarray, linfa (for clustering)
+- [x] Set up module structure
 
 ### M2.3.2 Vector Clustering
-- [ ] Implement k-means clustering
-- [ ] Implement cluster count heuristic (sqrt(n/2) as starting point)
-- [ ] Implement cluster assignment for each vector
-- [ ] Compute cluster centroids
-- [ ] [T] Unit test: clustering on synthetic data
-- [ ] [T] Unit test: correct number of clusters
+- [x] Implement k-means clustering
+- [x] Implement cluster count heuristic (sqrt(n/2) as starting point)
+- [x] Implement cluster assignment for each vector
+- [x] Compute cluster centroids
+- [x] [T] Unit test: clustering on synthetic data
+- [x] [T] Unit test: correct number of clusters
 
 ### M2.3.3 Cluster Labeling
 - [ ] Extract common terms from cluster members
