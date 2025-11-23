@@ -1,0 +1,541 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://doctown.dev/schemas/events.v1.schema.json",
+  "title": "Doctown Event Envelope v1.0",
+  "description": "Schema for all events in the Doctown pipeline",
+  "type": "object",
+  "required": ["envelope_version", "timestamp", "job_id", "event_id", "source", "type", "sequence", "payload"],
+  "properties": {
+    "envelope_version": {
+      "type": "string",
+      "const": "1.0",
+      "description": "Schema version"
+    },
+    "timestamp": {
+      "type": "string",
+      "format": "date-time",
+      "description": "ISO 8601 timestamp when event was created"
+    },
+    "job_id": {
+      "type": "string",
+      "pattern": "^job_[a-zA-Z0-9]+$",
+      "description": "Unique job identifier"
+    },
+    "event_id": {
+      "type": "string",
+      "pattern": "^evt_[a-zA-Z0-9]+$",
+      "description": "Unique event identifier"
+    },
+    "parent_event_id": {
+      "type": ["string", "null"],
+      "pattern": "^evt_[a-zA-Z0-9]+$",
+      "description": "Event that triggered this one (causality tracking)"
+    },
+    "source": {
+      "type": "string",
+      "description": "Worker or service that emitted this event"
+    },
+    "type": {
+      "type": "string",
+      "pattern": "^[a-z]+\\.[a-z_]+\\.v[0-9]+$",
+      "description": "Event type with version suffix"
+    },
+    "status": {
+      "type": ["string", "null"],
+      "enum": ["success", "failed", "partial", "cancelled", null],
+      "description": "Only set on terminal events"
+    },
+    "sequence": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "Monotonic ordering within this job"
+    },
+    "payload": {
+      "type": "object",
+      "description": "Event-specific data"
+    },
+    "context": {
+      "type": "object",
+      "description": "Job-level context, copied across workers",
+      "properties": {
+        "repo_url": {
+          "type": "string",
+          "format": "uri"
+        },
+        "git_ref": {
+          "type": "string"
+        },
+        "user_id": {
+          "type": "string"
+        },
+        "plan_tier": {
+          "type": "string",
+          "enum": ["free", "creator", "team", "enterprise"]
+        }
+      }
+    },
+    "meta": {
+      "type": "object",
+      "description": "Operational metadata",
+      "properties": {
+        "producer_version": {
+          "type": "string",
+          "description": "Software version that emitted this event"
+        },
+        "trace_id": {
+          "type": "string",
+          "description": "Distributed tracing ID"
+        },
+        "idempotency_key": {
+          "type": "string",
+          "description": "For deduplication on retries"
+        },
+        "tags": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Arbitrary labels for filtering"
+        }
+      }
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": { "type": { "const": "job.created.v1" } }
+      },
+      "then": {
+        "properties": {
+          "payload": {
+            "type": "object",
+            "required": ["estimated_cost", "estimated_duration_ms"],
+            "properties": {
+              "estimated_cost": { "type": "number", "minimum": 0 },
+              "estimated_duration_ms": { "type": "integer", "minimum": 0 }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": { "type": { "const": "job.validated.v1" } }
+      },
+      "then": {
+        "properties": {
+          "payload": {
+            "type": "object",
+            "required": ["file_count", "size_bytes", "languages"],
+            "properties": {
+              "file_count": { "type": "integer", "minimum": 0 },
+              "size_bytes": { "type": "integer", "minimum": 0 },
+              "languages": { "type": "array", "items": { "type": "string" } },
+              "estimated_cost_refined": { "type": "number", "minimum": 0 }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": { "type": { "const": "job.started.v1" } }
+      },
+      "then": {
+        "properties": {
+          "payload": {
+            "type": "object",
+            "required": ["worker_assignments"],
+            "properties": {
+              "worker_assignments": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "required": ["stage", "worker_id"],
+                  "properties": {
+                    "stage": { "type": "string" },
+                    "worker_id": { "type": "string" }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": { "type": { "const": "job.completed.v1" } }
+      },
+      "then": {
+        "properties": {
+          "status": { "enum": ["success", "failed", "cancelled"] },
+          "payload": {
+            "type": "object",
+            "required": ["warnings"],
+            "properties": {
+              "docpack_url": { "type": "string", "format": "uri" },
+              "duration_ms": { "type": "integer", "minimum": 0 },
+              "final_cost": { "type": "number", "minimum": 0 },
+              "warnings": { "type": "array", "items": { "type": "string" } }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": { "type": { "const": "ingest.started.v1" } }
+      },
+      "then": {
+        "properties": {
+          "payload": { "type": "object" }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": { "type": { "const": "ingest.file_detected.v1" } }
+      },
+      "then": {
+        "properties": {
+          "payload": {
+            "type": "object",
+            "required": ["file_path", "size_bytes"],
+            "properties": {
+              "file_path": { "type": "string" },
+              "size_bytes": { "type": "integer", "minimum": 0 }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": { "type": { "const": "ingest.file_skipped.v1" } }
+      },
+      "then": {
+        "properties": {
+          "payload": {
+            "type": "object",
+            "required": ["file_path", "reason"],
+            "properties": {
+              "file_path": { "type": "string" },
+              "reason": { "type": "string" }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": { "type": { "const": "ingest.chunk_created.v1" } }
+      },
+      "then": {
+        "properties": {
+          "payload": {
+            "type": "object",
+            "required": ["chunk_id", "file_path", "language", "content_hash", "byte_range"],
+            "properties": {
+              "chunk_id": { "type": "string" },
+              "file_path": { "type": "string" },
+              "language": { "type": "string" },
+              "content_hash": { "type": "string" },
+              "byte_range": {
+                "type": "array",
+                "items": { "type": "integer" },
+                "minItems": 2,
+                "maxItems": 2
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": { "type": { "const": "ingest.completed.v1" } }
+      },
+      "then": {
+        "properties": {
+          "status": { "enum": ["success", "failed"] },
+          "payload": {
+            "type": "object",
+            "required": ["total_files", "total_chunks", "languages", "warnings"],
+            "properties": {
+              "total_files": { "type": "integer", "minimum": 0 },
+              "total_chunks": { "type": "integer", "minimum": 0 },
+              "languages": { "type": "array", "items": { "type": "string" } },
+              "warnings": { "type": "array", "items": { "type": "string" } }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": { "type": { "const": "embedding.started.v1" } }
+      },
+      "then": {
+        "properties": {
+          "payload": {
+            "type": "object",
+            "required": ["total_chunks"],
+            "properties": {
+              "total_chunks": { "type": "integer", "minimum": 0 }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": { "type": { "const": "embedding.batch_started.v1" } }
+      },
+      "then": {
+        "properties": {
+          "payload": {
+            "type": "object",
+            "required": ["batch_id", "chunk_ids", "batch_size"],
+            "properties": {
+              "batch_id": { "type": "string" },
+              "chunk_ids": { "type": "array", "items": { "type": "string" } },
+              "batch_size": { "type": "integer", "minimum": 1 },
+              "attempt": { "type": "integer", "minimum": 1, "default": 1 }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": { "type": { "const": "embedding.chunk_vector.v1" } }
+      },
+      "then": {
+        "properties": {
+          "payload": {
+            "type": "object",
+            "required": ["chunk_id", "vector_hash", "dimensions"],
+            "properties": {
+              "chunk_id": { "type": "string" },
+              "vector_hash": { "type": "string" },
+              "dimensions": { "type": "integer", "minimum": 1 }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": { "type": { "const": "embedding.batch_completed.v1" } }
+      },
+      "then": {
+        "properties": {
+          "status": { "enum": ["success", "failed"] },
+          "payload": {
+            "type": "object",
+            "required": ["batch_id", "vector_count", "duration_ms", "warnings"],
+            "properties": {
+              "batch_id": { "type": "string" },
+              "vector_count": { "type": "integer", "minimum": 0 },
+              "duration_ms": { "type": "integer", "minimum": 0 },
+              "latency_ms": { "type": "integer", "minimum": 0 },
+              "warnings": { "type": "array", "items": { "type": "string" } }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": { "type": { "const": "embedding.completed.v1" } }
+      },
+      "then": {
+        "properties": {
+          "status": { "enum": ["success", "failed"] },
+          "payload": {
+            "type": "object",
+            "required": ["total_vectors", "duration_ms", "warnings"],
+            "properties": {
+              "total_vectors": { "type": "integer", "minimum": 0 },
+              "duration_ms": { "type": "integer", "minimum": 0 },
+              "warnings": { "type": "array", "items": { "type": "string" } }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": { "type": { "const": "assembly.started.v1" } }
+      },
+      "then": {
+        "properties": {
+          "payload": {
+            "type": "object",
+            "required": ["total_embeddings", "total_symbols"],
+            "properties": {
+              "total_embeddings": { "type": "integer", "minimum": 0 },
+              "total_symbols": { "type": "integer", "minimum": 0 }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": { "type": { "const": "assembly.cluster_created.v1" } }
+      },
+      "then": {
+        "properties": {
+          "payload": {
+            "type": "object",
+            "required": ["cluster_id", "label", "member_count"],
+            "properties": {
+              "cluster_id": { "type": "string" },
+              "label": { "type": "string" },
+              "member_count": { "type": "integer", "minimum": 1 }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": { "type": { "const": "assembly.graph_completed.v1" } }
+      },
+      "then": {
+        "properties": {
+          "payload": {
+            "type": "object",
+            "required": ["node_count", "edge_count"],
+            "properties": {
+              "node_count": { "type": "integer", "minimum": 0 },
+              "edge_count": { "type": "integer", "minimum": 0 }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": { "type": { "const": "assembly.completed.v1" } }
+      },
+      "then": {
+        "properties": {
+          "status": { "enum": ["success", "failed"] },
+          "payload": {
+            "type": "object",
+            "required": ["clusters", "metrics", "warnings"],
+            "properties": {
+              "clusters": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "required": ["cluster_id", "label", "member_count"],
+                  "properties": {
+                    "cluster_id": { "type": "string" },
+                    "label": { "type": "string" },
+                    "member_count": { "type": "integer", "minimum": 1 }
+                  }
+                }
+              },
+              "metrics": { "type": "object" },
+              "warnings": { "type": "array", "items": { "type": "string" } }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": { "type": { "const": "generation.started.v1" } }
+      },
+      "then": {
+        "properties": {
+          "payload": {
+            "type": "object",
+            "required": ["symbol_count", "estimated_tokens"],
+            "properties": {
+              "symbol_count": { "type": "integer", "minimum": 0 },
+              "estimated_tokens": { "type": "integer", "minimum": 0 }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": { "type": { "const": "generation.symbol_documented.v1" } }
+      },
+      "then": {
+        "properties": {
+          "payload": {
+            "type": "object",
+            "required": ["symbol_id", "token_count"],
+            "properties": {
+              "symbol_id": { "type": "string" },
+              "token_count": { "type": "integer", "minimum": 0 }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": { "type": { "const": "generation.completed.v1" } }
+      },
+      "then": {
+        "properties": {
+          "status": { "enum": ["success", "failed"] },
+          "payload": {
+            "type": "object",
+            "required": ["total_tokens", "total_cost", "duration_ms", "warnings"],
+            "properties": {
+              "total_tokens": { "type": "integer", "minimum": 0 },
+              "total_cost": { "type": "number", "minimum": 0 },
+              "duration_ms": { "type": "integer", "minimum": 0 },
+              "warnings": { "type": "array", "items": { "type": "string" } }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": { "type": { "const": "pack.started.v1" } }
+      },
+      "then": {
+        "properties": {
+          "payload": {
+            "type": "object",
+            "required": ["artifact_count"],
+            "properties": {
+              "artifact_count": { "type": "integer", "minimum": 0 }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": { "type": { "const": "pack.completed.v1" } }
+      },
+      "then": {
+        "properties": {
+          "status": { "enum": ["success", "failed", "partial"] },
+          "payload": {
+            "type": "object",
+            "required": ["size_bytes", "checksum", "schema_version", "skipped_files", "warnings"],
+            "properties": {
+              "docpack_url": { "type": "string", "format": "uri" },
+              "size_bytes": { "type": "integer", "minimum": 0 },
+              "checksum": { "type": "string" },
+              "schema_version": { "type": "string" },
+              "skipped_files": { "type": "array", "items": { "type": "string" } },
+              "warnings": { "type": "array", "items": { "type": "string" } }
+            }
+          }
+        }
+      }
+    }
+  ]
+}
