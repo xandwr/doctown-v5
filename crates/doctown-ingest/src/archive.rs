@@ -186,7 +186,6 @@ pub async fn process_extracted_files(
                     )
                     .await
                     .map_err(|e| DocError::Internal(format!("Failed to send event: {}", e)))?;
-                files_processed += 1;
 
                 if let Some(tree) = parse(&content, language) {
                     let symbols = extract_symbols(&tree, &content, language);
@@ -216,6 +215,7 @@ pub async fn process_extracted_files(
                             })?;
                         chunks_created += 1;
                     }
+                    files_processed += 1;
                 } else {
                     // Failed to parse, emit skipped event
                     sender

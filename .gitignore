@@ -42,3 +42,5 @@ logs/
 *.zip
 *.tar.gz
 *.docpack
+
+*.pid

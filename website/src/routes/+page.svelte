@@ -1,9 +1,10 @@
 <script lang="ts">
 	import RepoInput from '$lib/components/RepoInput.svelte';
+	import EventLog from '$lib/components/EventLog.svelte';
 	import { SSEClient } from '$lib/sse-client';
 
 	let isLoading = $state(false);
-	let events = $state<unknown[]>([]);
+	let events = $state<any[]>([]);
 	let errorMessage = $state<string | null>(null);
 	let sseClient: SSEClient | null = null;
 
@@ -22,8 +23,17 @@
 			`${apiUrl}/ingest?repo_url=${encodeURIComponent(repoUrl)}&job_id=${jobId}`,
 			{
 				onMessage: (event) => {
-					console.log('SSE event received:', event);
+					// Only log completed events to console, not every chunk
+					const eventType = (event as any).event_type;
+					if (eventType?.includes('completed') || eventType?.includes('started')) {
+						console.log('SSE event received:', event);
+					}
 					events = [...events, event];
+					
+					// Auto-stop loading on completed event
+					if (eventType?.includes('completed')) {
+						isLoading = false;
+					}
 				},
 				onError: (error) => {
 					console.error('SSE error:', error);
@@ -87,22 +97,7 @@
 		{/if}
 
 		{#if events.length > 0}
-			<div class="bg-white rounded-lg shadow-md p-8">
-				<h2 class="text-xl font-semibold text-gray-900 mb-4">
-					Events ({events.length})
-				</h2>
-				<div class="space-y-2 max-h-96 overflow-y-auto">
-					{#each events as event, i}
-						<div class="border-l-4 border-blue-500 pl-4 py-2 bg-gray-50 rounded">
-							<pre class="text-xs text-gray-800 overflow-x-auto">{JSON.stringify(
-									event,
-									null,
-									2
-								)}</pre>
-						</div>
-					{/each}
-				</div>
-			</div>
+			<EventLog {events} {isLoading} />
 		{/if}
 	</div>
 </div>
