@@ -311,37 +311,37 @@
 - [x] [T] Unit tests for invalid URLs rejected
 
 ### M1.8.2 GitHub API Client
-- [ ] Implement basic GitHub API client
-- [ ] Implement repository existence check (HEAD request)
-- [ ] Implement repository metadata fetch (size, default branch)
-- [ ] Implement ref resolution (branch name → commit SHA)
-- [ ] Handle rate limiting (check X-RateLimit headers)
-- [ ] [T] Unit tests with mock HTTP responses
-- [ ] [T] Integration test with real public repo (gated by env var)
+- [x] Implement basic GitHub API client
+- [x] Implement repository existence check (HEAD request)
+- [x] Implement repository metadata fetch (size, default branch)
+- [x] Implement ref resolution (branch name → commit SHA)
+- [x] Handle rate limiting (check X-RateLimit headers)
+- [x] [T] Unit tests with mock HTTP responses
+- [x] [T] Integration test with real public repo (gated by env var)
 
 ### M1.8.3 Repository Download
-- [ ] Implement ZIP archive download (codeload.github.com)
-- [ ] Implement streaming extraction (don't load full ZIP in memory)
-- [ ] Handle nested directories correctly
-- [ ] Normalize paths (remove "repo-branch/" prefix)
-- [ ] [T] Unit tests with sample ZIP file
-- [ ] [T] Integration test: download real repo
+- [x] Implement ZIP archive download (codeload.github.com)
+- [x] Implement streaming extraction (don't load full ZIP in memory)
+- [x] Handle nested directories correctly
+- [x] Normalize paths (remove "repo-branch/" prefix)
+- [x] [T] Unit tests with sample ZIP file
+- [x] [T] Integration test: download real repo
 
 ### M1.8.4 File Filtering
-- [ ] Implement binary file detection (check for null bytes)
-- [ ] Define default ignore patterns:
-  - [ ] `.git/`
-  - [ ] `node_modules/`
-  - [ ] `target/` (Rust)
-  - [ ] `__pycache__/`
-  - [ ] `.venv/`, `venv/`
-  - [ ] `dist/`, `build/`
-  - [ ] `*.lock` files (Cargo.lock, package-lock.json, etc.)
-- [ ] Implement max file size limit (skip files > 1MB)
-- [ ] Implement total repo size limit (abort if > 100MB)
-- [ ] [T] Unit test: binary detection
-- [ ] [T] Unit test: ignore patterns match
-- [ ] [T] Unit test: size limits enforced
+- [x] Implement binary file detection (check for null bytes)
+- [x] Define default ignore patterns:
+  - [x] `.git/`
+  - [x] `node_modules/`
+  - [x] `target/` (Rust)
+  - [x] `__pycache__/`
+  - [x] `.venv/`, `venv/`
+  - [x] `dist/`, `build/`
+  - [x] `*.lock` files (Cargo.lock, package-lock.json, etc.)
+- [x] Implement max file size limit (skip files > 1MB)
+- [x] Implement total repo size limit (abort if > 100MB)
+- [x] [T] Unit test: binary detection
+- [x] [T] Unit test: ignore patterns match
+- [x] [T] Unit test: size limits enforced
 
 ---
 

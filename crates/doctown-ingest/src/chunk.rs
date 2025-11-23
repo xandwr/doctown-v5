@@ -151,7 +151,7 @@ fn create_symbol_chunks(
     // If small enough, create a single chunk
     if content_size <= config.max_chunk_size {
         let chunk =
-            Chunk::new(file_path, language, symbol.range.clone(), content).with_symbol(symbol);
+            Chunk::new(file_path, language, symbol.range, content).with_symbol(symbol);
         return vec![chunk];
     }
 
@@ -175,7 +175,7 @@ fn split_symbol(
     let effective_size = config.max_chunk_size - config.overlap_size;
 
     // Calculate number of splits needed
-    let num_splits = (content_len + effective_size - 1) / effective_size;
+    let num_splits = content_len.div_ceil(effective_size);
 
     for i in 0..num_splits {
         let start_offset = i * effective_size;
@@ -248,7 +248,7 @@ fn create_file_chunk(
     // Split the file into multiple chunks
     let mut chunks = Vec::new();
     let effective_size = config.max_chunk_size - config.overlap_size;
-    let num_splits = (content_len + effective_size - 1) / effective_size;
+    let num_splits = content_len.div_ceil(effective_size);
 
     for i in 0..num_splits {
         let start_offset = i * effective_size;

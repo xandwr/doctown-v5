@@ -56,7 +56,7 @@ impl EventType {
     }
 
     /// Attempts to parse an event type from a string.
-    pub fn from_str(s: &str) -> Option<Self> {
+    pub fn try_from_str(s: &str) -> Option<Self> {
         match s {
             "ingest.started.v1" => Some(Self::IngestStarted),
             "ingest.file_detected.v1" => Some(Self::IngestFileDetected),
@@ -192,7 +192,7 @@ impl<T> Envelope<T> {
         }
 
         // Validate event_type is recognized
-        let event_type = EventType::from_str(&self.event_type)
+        let event_type = EventType::try_from_str(&self.event_type)
             .ok_or_else(|| ValidationError::InvalidEventType(self.event_type.clone()))?;
 
         // Validate repo_url is not empty
@@ -214,7 +214,7 @@ impl<T> Envelope<T> {
 
     /// Returns the parsed EventType if valid.
     pub fn parsed_event_type(&self) -> Option<EventType> {
-        EventType::from_str(&self.event_type)
+        EventType::try_from_str(&self.event_type)
     }
 }
 
@@ -394,16 +394,16 @@ mod tests {
     }
 
     #[test]
-    fn test_event_type_from_str() {
+    fn test_event_type_try_from_str() {
         assert_eq!(
-            EventType::from_str("ingest.started.v1"),
+            EventType::try_from_str("ingest.started.v1"),
             Some(EventType::IngestStarted)
         );
         assert_eq!(
-            EventType::from_str("ingest.completed.v1"),
+            EventType::try_from_str("ingest.completed.v1"),
             Some(EventType::IngestCompleted)
         );
-        assert_eq!(EventType::from_str("unknown.event.v1"), None);
+        assert_eq!(EventType::try_from_str("unknown.event.v1"), None);
     }
 
     #[test]

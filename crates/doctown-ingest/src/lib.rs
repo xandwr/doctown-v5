@@ -8,6 +8,7 @@
 
 pub mod archive;
 pub mod chunk;
+pub mod filter;
 pub mod github;
 pub mod language;
 pub mod parsing;
@@ -17,7 +18,11 @@ pub mod traversal;
 
 pub use archive::{extract_zip, process_extracted_files};
 pub use chunk::{create_chunks, Chunk, ChunkMetadata, ChunkingConfig};
-pub use github::GitHubUrl;
+pub use filter::{
+    normalize_archive_path, FileFilter, FilterResult, SkipReason as FilterSkipReason,
+    MAX_FILE_SIZE, MAX_REPO_SIZE,
+};
+pub use github::{GitHubClient, GitHubUrl, RateLimitInfo, RefInfo, RepoMetadata};
 pub use language::detect_language;
 pub use parsing::{parse, Parser};
 pub use pipeline::run_pipeline;

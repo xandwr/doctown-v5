@@ -32,20 +32,17 @@ pub async fn run_pipeline(
 
     // Emit IngestStarted event
     sender
-        .send(
-            Envelope::new(
-                "ingest.started.v1",
-                context.clone(),
-                serde_json::to_value(IngestStartedPayload::new(
-                    github_url.canonical_url(),
-                    github_url
-                        .git_ref
-                        .clone()
-                        .unwrap_or_else(|| "HEAD".to_string()),
-                ))?,
-            )
-            .into(),
-        )
+        .send(Envelope::new(
+            "ingest.started.v1",
+            context.clone(),
+            serde_json::to_value(IngestStartedPayload::new(
+                github_url.canonical_url(),
+                github_url
+                    .git_ref
+                    .clone()
+                    .unwrap_or_else(|| "HEAD".to_string()),
+            ))?,
+        ))
         .await
         .map_err(|e| DocError::Internal(format!("Failed to send event: {}", e)))?;
 
@@ -86,8 +83,7 @@ pub async fn run_pipeline(
                             duration_ms,
                         ))?,
                     )
-                    .with_status(Status::Success)
-                    .into(),
+                    .with_status(Status::Success),
                 )
                 .await
                 .map_err(|e| DocError::Internal(format!("Failed to send event: {}", e)))?;
@@ -104,8 +100,7 @@ pub async fn run_pipeline(
                             duration_ms,
                         ))?,
                     )
-                    .with_status(Status::Failed)
-                    .into(),
+                    .with_status(Status::Failed),
                 )
                 .await
                 .map_err(|send_err| {
