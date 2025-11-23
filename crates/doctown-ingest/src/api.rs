@@ -20,6 +20,8 @@ pub struct ServerConfig {
     pub port: u16,
     /// CORS allowed origins (e.g., "http://localhost:5173")
     pub cors_origins: Vec<String>,
+    /// Allow any origin (for production environments)
+    pub allow_any_origin: bool,
     /// Maximum request body size in bytes
     pub max_body_size: usize,
 }
@@ -30,6 +32,7 @@ impl Default for ServerConfig {
             host: "127.0.0.1".to_string(),
             port: 8080,
             cors_origins: vec!["http://localhost:5173".to_string()],
+            allow_any_origin: false,
             max_body_size: 10 * 1024 * 1024, // 10 MB
         }
     }
@@ -221,19 +224,26 @@ pub async fn start_server(config: ServerConfig) -> std::io::Result<()> {
 
     let server = HttpServer::new(move || {
         // Build CORS middleware
-        let mut cors = Cors::default()
-            .allowed_methods(vec!["GET", "POST", "OPTIONS"])
-            .allowed_headers(vec![
-                actix_web::http::header::CONTENT_TYPE,
-                actix_web::http::header::ACCEPT,
-            ])
-            .supports_credentials()
-            .max_age(3600);
+        let cors = if config.allow_any_origin {
+            // Allow any origin for production environments
+            Cors::permissive()
+        } else {
+            // Specific origins for development
+            let mut cors = Cors::default()
+                .allowed_methods(vec!["GET", "POST", "OPTIONS"])
+                .allowed_headers(vec![
+                    actix_web::http::header::CONTENT_TYPE,
+                    actix_web::http::header::ACCEPT,
+                ])
+                .max_age(3600);
 
-        // Add all configured origins
-        for origin in &config.cors_origins {
-            cors = cors.allowed_origin(origin);
-        }
+            // Add all configured origins
+            for origin in &config.cors_origins {
+                cors = cors.allowed_origin(origin);
+            }
+            
+            cors
+        };
 
         App::new()
             .wrap(cors)
