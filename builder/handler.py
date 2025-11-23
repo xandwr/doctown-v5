@@ -25,11 +25,18 @@ def run_rust_server():
     global server_process, server_ready
     
     print("[Handler] Starting Rust ingest API server...")
+    # Set environment for production CORS
+    import os
+    env = os.environ.copy()
+    env['PRODUCTION'] = 'true'
+    env['HOST'] = '0.0.0.0'
+    
     server_process = subprocess.Popen(
         ["/app/builder"],
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
-        text=True
+        text=True,
+        env=env
     )
     
     # Wait for server to be ready
