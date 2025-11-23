@@ -10,6 +10,7 @@ async fn test_server_starts_and_stops_cleanly() {
         host: "127.0.0.1".to_string(),
         port: 0, // Let OS assign a port
         cors_origins: vec!["http://localhost:5173".to_string()],
+        allow_any_origin: false,
         max_body_size: 1024 * 1024, // 1 MB for testing
     };
 
@@ -80,6 +81,7 @@ async fn test_cors_configuration() {
             "http://localhost:5173".to_string(),
             "http://localhost:3000".to_string(),
         ],
+        allow_any_origin: false,
         max_body_size: 1024 * 1024,
     };
 
@@ -117,6 +119,7 @@ async fn test_body_size_limit() {
         host: "127.0.0.1".to_string(),
         port: 8082,
         cors_origins: vec!["http://localhost:5173".to_string()],
+        allow_any_origin: false,
         max_body_size: 100, // Very small limit for testing
     };
 
@@ -154,6 +157,7 @@ async fn test_m1_9_2_health_endpoint_responds() {
         host: "127.0.0.1".to_string(),
         port: 8083,
         cors_origins: vec!["http://localhost:5173".to_string()],
+        allow_any_origin: false,
         max_body_size: 10 * 1024 * 1024,
     };
 
@@ -188,6 +192,7 @@ async fn test_m1_9_3_ingest_request_validation() {
         host: "127.0.0.1".to_string(),
         port: 8084,
         cors_origins: vec!["http://localhost:5173".to_string()],
+        allow_any_origin: false,
         max_body_size: 10 * 1024 * 1024,
     };
 
@@ -267,6 +272,7 @@ async fn test_m1_9_4_sse_encoding_correct() {
         host: "127.0.0.1".to_string(),
         port: 8086,
         cors_origins: vec!["http://localhost:5173".to_string()],
+        allow_any_origin: false,
         max_body_size: 10 * 1024 * 1024,
     };
 
@@ -345,6 +351,7 @@ async fn test_m1_9_4_events_stream_incrementally() {
         host: "127.0.0.1".to_string(),
         port: 8087,
         cors_origins: vec!["http://localhost:5173".to_string()],
+        allow_any_origin: false,
         max_body_size: 10 * 1024 * 1024,
     };
 
@@ -419,6 +426,7 @@ async fn test_m1_9_4_keepalive_comments_sent() {
         host: "127.0.0.1".to_string(),
         port: 8088,
         cors_origins: vec!["http://localhost:5173".to_string()],
+        allow_any_origin: false,
         max_body_size: 10 * 1024 * 1024,
     };
 
@@ -492,6 +500,7 @@ async fn test_m1_9_4_client_disconnect_handling() {
         host: "127.0.0.1".to_string(),
         port: 8089,
         cors_origins: vec!["http://localhost:5173".to_string()],
+        allow_any_origin: false,
         max_body_size: 10 * 1024 * 1024,
     };
 
@@ -543,6 +552,7 @@ async fn test_m1_9_3_valid_request_returns_sse_stream() {
         host: "127.0.0.1".to_string(),
         port: 8085,
         cors_origins: vec!["http://localhost:5173".to_string()],
+        allow_any_origin: false,
         max_body_size: 10 * 1024 * 1024,
     };
 

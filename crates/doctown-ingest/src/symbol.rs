@@ -34,7 +34,9 @@ pub fn extract_symbols(
     match language {
         doctown_common::Language::Rust => extract_rust_symbols(tree, source_code),
         doctown_common::Language::Python => extract_python_symbols(tree, source_code),
-        _ => Vec::new(),
+        doctown_common::Language::TypeScript => extract_typescript_symbols(tree, source_code),
+        doctown_common::Language::JavaScript => extract_javascript_symbols(tree, source_code),
+        doctown_common::Language::Go => extract_go_symbols(tree, source_code),
     }
 }
 
@@ -636,6 +638,458 @@ fn extract_python_assignment(node: Node<'_>, source: &str) -> Option<Symbol> {
         name_range,
         signature,
         visibility: Visibility::Public,
+        is_async: false,
+    })
+}
+
+// ============================================
+// TypeScript/JavaScript Symbol Extraction
+// ============================================
+
+/// Extract symbols from TypeScript source code.
+fn extract_typescript_symbols(tree: &Tree, source_code: &str) -> Vec<Symbol> {
+    extract_ts_js_symbols(tree, source_code, true)
+}
+
+/// Extract symbols from JavaScript source code.
+fn extract_javascript_symbols(tree: &Tree, source_code: &str) -> Vec<Symbol> {
+    extract_ts_js_symbols(tree, source_code, false)
+}
+
+/// Extract symbols from TypeScript or JavaScript source code.
+fn extract_ts_js_symbols(tree: &Tree, source_code: &str, is_typescript: bool) -> Vec<Symbol> {
+    let mut symbols = Vec::new();
+    let root = tree.root_node();
+
+    // Extract function declarations
+    for node in find_nodes_by_kind(root, "function_declaration") {
+        if let Some(symbol) = extract_ts_function(node, source_code) {
+            symbols.push(symbol);
+        }
+    }
+
+    // Extract arrow function assignments (const foo = () => {})
+    for node in find_nodes_by_kind(root, "lexical_declaration") {
+        if let Some(symbol) = extract_ts_arrow_function(node, source_code) {
+            symbols.push(symbol);
+        }
+    }
+
+    // Extract class declarations
+    for node in find_nodes_by_kind(root, "class_declaration") {
+        if let Some(symbol) = extract_ts_class(node, source_code) {
+            symbols.push(symbol);
+        }
+    }
+
+    // TypeScript-only: Extract interface declarations
+    if is_typescript {
+        for node in find_nodes_by_kind(root, "interface_declaration") {
+            if let Some(symbol) = extract_ts_interface(node, source_code) {
+                symbols.push(symbol);
+            }
+        }
+
+        // Extract type alias declarations
+        for node in find_nodes_by_kind(root, "type_alias_declaration") {
+            if let Some(symbol) = extract_ts_type_alias(node, source_code) {
+                symbols.push(symbol);
+            }
+        }
+    }
+
+    symbols
+}
+
+/// Extract a TypeScript/JavaScript function declaration.
+fn extract_ts_function(node: Node<'_>, source: &str) -> Option<Symbol> {
+    let name_node = child_by_field(node, "name")?;
+    let name = node_text(name_node, source).to_string();
+    let name_range = node_byte_range(name_node);
+    let range = node_byte_range(node);
+
+    // Check if async
+    let is_async = node_text(node, source).trim_start().starts_with("async");
+
+    // Extract signature (name + params + return type)
+    let signature = extract_ts_function_signature(node, source);
+
+    // Check for export
+    let visibility = if is_exported(node) {
+        Visibility::Public
+    } else {
+        Visibility::Private
+    };
+
+    Some(Symbol {
+        kind: SymbolKind::Function,
+        name,
+        range,
+        name_range,
+        signature,
+        visibility,
+        is_async,
+    })
+}
+
+/// Extract an arrow function assignment (const foo = () => {}).
+fn extract_ts_arrow_function(node: Node<'_>, source: &str) -> Option<Symbol> {
+    // Look for a variable_declarator child
+    let declarator = find_child_by_kind(node, "variable_declarator")?;
+    
+    // Get the name
+    let name_node = child_by_field(declarator, "name")?;
+    let name = node_text(name_node, source).to_string();
+    let name_range = node_byte_range(name_node);
+
+    // Check if the value is an arrow_function
+    let value_node = child_by_field(declarator, "value")?;
+    if value_node.kind() != "arrow_function" {
+        return None;
+    }
+
+    let range = node_byte_range(node);
+
+    // Check if async
+    let is_async = node_text(value_node, source).trim_start().starts_with("async");
+
+    // Extract signature
+    let signature = extract_ts_arrow_signature(name.clone(), value_node, source);
+
+    // Check for export
+    let visibility = if is_exported(node) {
+        Visibility::Public
+    } else {
+        Visibility::Private
+    };
+
+    Some(Symbol {
+        kind: SymbolKind::Function,
+        name,
+        range,
+        name_range,
+        signature,
+        visibility,
+        is_async,
+    })
+}
+
+/// Extract signature from a TypeScript/JavaScript function.
+fn extract_ts_function_signature(node: Node<'_>, source: &str) -> Option<String> {
+    let name_node = child_by_field(node, "name")?;
+    let name = node_text(name_node, source);
+    
+    let params = child_by_field(node, "parameters")
+        .map(|n| node_text(n, source))
+        .unwrap_or("()");
+
+    let return_type = child_by_field(node, "return_type")
+        .map(|n| format!(": {}", node_text(n, source).trim_start_matches(':')))
+        .unwrap_or_default();
+
+    Some(format!("{}{}{}", name, params, return_type))
+}
+
+/// Extract signature from an arrow function assignment.
+fn extract_ts_arrow_signature(name: String, arrow_node: Node<'_>, source: &str) -> Option<String> {
+    let params = child_by_field(arrow_node, "parameter")
+        .or_else(|| child_by_field(arrow_node, "parameters"))
+        .map(|n| node_text(n, source))
+        .unwrap_or("()");
+
+    let return_type = child_by_field(arrow_node, "return_type")
+        .map(|n| format!(": {}", node_text(n, source).trim_start_matches(':')))
+        .unwrap_or_default();
+
+    Some(format!("{} = {}{} => ...", name, params, return_type))
+}
+
+/// Extract a TypeScript/JavaScript class declaration.
+fn extract_ts_class(node: Node<'_>, source: &str) -> Option<Symbol> {
+    let name_node = child_by_field(node, "name")?;
+    let name = node_text(name_node, source).to_string();
+    let name_range = node_byte_range(name_node);
+    let range = node_byte_range(node);
+
+    // Build signature with extends/implements
+    let signature = extract_ts_class_signature(node, source);
+
+    // Check for export
+    let visibility = if is_exported(node) {
+        Visibility::Public
+    } else {
+        Visibility::Private
+    };
+
+    Some(Symbol {
+        kind: SymbolKind::Class,
+        name,
+        range,
+        name_range,
+        signature,
+        visibility,
+        is_async: false,
+    })
+}
+
+/// Extract class signature (name + extends + implements).
+fn extract_ts_class_signature(node: Node<'_>, source: &str) -> Option<String> {
+    let name_node = child_by_field(node, "name")?;
+    let name = node_text(name_node, source);
+
+    let heritage = child_by_field(node, "heritage")
+        .or_else(|| find_child_by_kind(node, "class_heritage"))
+        .map(|n| format!(" {}", node_text(n, source)))
+        .unwrap_or_default();
+
+    Some(format!("{}{}", name, heritage))
+}
+
+/// Extract a TypeScript interface declaration.
+fn extract_ts_interface(node: Node<'_>, source: &str) -> Option<Symbol> {
+    let name_node = child_by_field(node, "name")?;
+    let name = node_text(name_node, source).to_string();
+    let name_range = node_byte_range(name_node);
+    let range = node_byte_range(node);
+
+    // Build signature with extends - look for extends_clause or extends_type_clause
+    let extends = child_by_field(node, "heritage")
+        .or_else(|| find_child_by_kind(node, "extends_clause"))
+        .or_else(|| find_child_by_kind(node, "extends_type_clause"))
+        .map(|n| format!(" {}", node_text(n, source)))
+        .unwrap_or_default();
+
+    let signature = Some(format!("{}{}", name, extends));
+
+    let visibility = if is_exported(node) {
+        Visibility::Public
+    } else {
+        Visibility::Private
+    };
+
+    Some(Symbol {
+        kind: SymbolKind::Interface,
+        name,
+        range,
+        name_range,
+        signature,
+        visibility,
+        is_async: false,
+    })
+}
+
+/// Extract a TypeScript type alias declaration.
+fn extract_ts_type_alias(node: Node<'_>, source: &str) -> Option<Symbol> {
+    let name_node = child_by_field(node, "name")?;
+    let name = node_text(name_node, source).to_string();
+    let name_range = node_byte_range(name_node);
+    let range = node_byte_range(node);
+
+    // Get the type value
+    let type_value = child_by_field(node, "value")
+        .map(|n| format!(" = {}", node_text(n, source)))
+        .unwrap_or_default();
+
+    let signature = Some(format!("{}{}", name, type_value));
+
+    let visibility = if is_exported(node) {
+        Visibility::Public
+    } else {
+        Visibility::Private
+    };
+
+    Some(Symbol {
+        kind: SymbolKind::TypeAlias,
+        name,
+        range,
+        name_range,
+        signature,
+        visibility,
+        is_async: false,
+    })
+}
+
+/// Check if a node is exported (has export modifier).
+fn is_exported(node: Node<'_>) -> bool {
+    // Check if there's an export_statement parent
+    if let Some(parent) = node.parent() {
+        if parent.kind() == "export_statement" {
+            return true;
+        }
+    }
+
+    // Check for export modifier in ancestors
+    for ancestor in ancestors(node) {
+        if ancestor.kind() == "export_statement" {
+            return true;
+        }
+    }
+
+    false
+}
+
+// ============================================
+// Go Symbol Extraction
+// ============================================
+
+/// Extract symbols from Go source code.
+fn extract_go_symbols(tree: &Tree, source_code: &str) -> Vec<Symbol> {
+    let mut symbols = Vec::new();
+    let root = tree.root_node();
+
+    // Extract function declarations
+    for node in find_nodes_by_kind(root, "function_declaration") {
+        if let Some(symbol) = extract_go_function(node, source_code) {
+            symbols.push(symbol);
+        }
+    }
+
+    // Extract method declarations (functions with receivers)
+    for node in find_nodes_by_kind(root, "method_declaration") {
+        if let Some(symbol) = extract_go_method(node, source_code) {
+            symbols.push(symbol);
+        }
+    }
+
+    // Extract struct declarations
+    for node in find_nodes_by_kind(root, "type_declaration") {
+        // A type_declaration can contain a type_spec
+        for spec in find_nodes_by_kind(node, "type_spec") {
+            if let Some(symbol) = extract_go_type_spec(spec, source_code) {
+                symbols.push(symbol);
+            }
+        }
+    }
+
+    symbols
+}
+
+/// Extract a Go function declaration.
+fn extract_go_function(node: Node<'_>, source: &str) -> Option<Symbol> {
+    let name_node = child_by_field(node, "name")?;
+    let name = node_text(name_node, source).to_string();
+    let name_range = node_byte_range(name_node);
+    let range = node_byte_range(node);
+
+    // Extract signature (name + params + return type)
+    let signature = extract_go_function_signature(node, source);
+
+    // Go exports are determined by capitalization
+    let visibility = if name.chars().next().map_or(false, |c| c.is_uppercase()) {
+        Visibility::Public
+    } else {
+        Visibility::Private
+    };
+
+    Some(Symbol {
+        kind: SymbolKind::Function,
+        name,
+        range,
+        name_range,
+        signature,
+        visibility,
+        is_async: false,
+    })
+}
+
+/// Extract a Go method declaration.
+fn extract_go_method(node: Node<'_>, source: &str) -> Option<Symbol> {
+    let name_node = child_by_field(node, "name")?;
+    let name = node_text(name_node, source).to_string();
+    let name_range = node_byte_range(name_node);
+    let range = node_byte_range(node);
+
+    // Get receiver
+    let receiver = child_by_field(node, "receiver")
+        .map(|n| node_text(n, source))
+        .unwrap_or("");
+
+    // Extract signature (receiver + name + params + return type)
+    let signature = extract_go_method_signature(receiver, node, source);
+
+    let visibility = if name.chars().next().map_or(false, |c| c.is_uppercase()) {
+        Visibility::Public
+    } else {
+        Visibility::Private
+    };
+
+    Some(Symbol {
+        kind: SymbolKind::Method,
+        name,
+        range,
+        name_range,
+        signature,
+        visibility,
+        is_async: false,
+    })
+}
+
+/// Extract signature from a Go function.
+fn extract_go_function_signature(node: Node<'_>, source: &str) -> Option<String> {
+    let name_node = child_by_field(node, "name")?;
+    let name = node_text(name_node, source);
+
+    let params = child_by_field(node, "parameters")
+        .map(|n| node_text(n, source))
+        .unwrap_or("()");
+
+    let result = child_by_field(node, "result")
+        .map(|n| format!(" {}", node_text(n, source)))
+        .unwrap_or_default();
+
+    Some(format!("{}{}{}", name, params, result))
+}
+
+/// Extract signature from a Go method.
+fn extract_go_method_signature(receiver: &str, node: Node<'_>, source: &str) -> Option<String> {
+    let name_node = child_by_field(node, "name")?;
+    let name = node_text(name_node, source);
+
+    let params = child_by_field(node, "parameters")
+        .map(|n| node_text(n, source))
+        .unwrap_or("()");
+
+    let result = child_by_field(node, "result")
+        .map(|n| format!(" {}", node_text(n, source)))
+        .unwrap_or_default();
+
+    Some(format!("{} {}{}{}", receiver, name, params, result))
+}
+
+/// Extract a Go type specification (struct, interface, or type alias).
+fn extract_go_type_spec(node: Node<'_>, source: &str) -> Option<Symbol> {
+    let name_node = child_by_field(node, "name")?;
+    let name = node_text(name_node, source).to_string();
+    let name_range = node_byte_range(name_node);
+    let range = node_byte_range(node);
+
+    // Get the type definition
+    let type_node = child_by_field(node, "type")?;
+    let type_kind = type_node.kind();
+
+    let kind = match type_kind {
+        "struct_type" => SymbolKind::Struct,
+        "interface_type" => SymbolKind::Interface,
+        _ => SymbolKind::TypeAlias,
+    };
+
+    // Build signature
+    let type_text = node_text(type_node, source);
+    let signature = Some(format!("{} {}", name, type_text));
+
+    let visibility = if name.chars().next().map_or(false, |c| c.is_uppercase()) {
+        Visibility::Public
+    } else {
+        Visibility::Private
+    };
+
+    Some(Symbol {
+        kind,
+        name,
+        range,
+        name_range,
+        signature,
+        visibility,
         is_async: false,
     })
 }
@@ -1752,5 +2206,424 @@ def helper():
         // Verify constant with type annotation
         let max_retries = symbols.iter().find(|s| s.name == "MAX_RETRIES").unwrap();
         assert!(max_retries.signature.as_ref().unwrap().contains(": int"));
+    }
+
+    // ============================================
+    // TypeScript Tests
+    // ============================================
+
+    #[test]
+    fn test_extract_typescript_function() {
+        let code = r#"
+function greet(name: string): string {
+    return `Hello, ${name}`;
+}
+
+export function add(a: number, b: number): number {
+    return a + b;
+}
+
+async function fetchData(): Promise<string> {
+    return "data";
+}
+"#;
+        let tree = parse(code, Language::TypeScript).unwrap();
+        let symbols = extract_symbols(&tree, code, Language::TypeScript);
+
+        assert_eq!(symbols.len(), 3);
+
+        // greet function
+        let greet = symbols.iter().find(|s| s.name == "greet").unwrap();
+        assert_eq!(greet.kind, SymbolKind::Function);
+        assert!(!greet.is_async);
+        assert_eq!(greet.visibility, Visibility::Private);
+        assert!(greet.signature.as_ref().unwrap().contains("string"));
+
+        // add function (exported)
+        let add = symbols.iter().find(|s| s.name == "add").unwrap();
+        assert_eq!(add.visibility, Visibility::Public);
+        assert!(add.signature.as_ref().unwrap().contains("number"));
+
+        // fetchData (async)
+        let fetch = symbols.iter().find(|s| s.name == "fetchData").unwrap();
+        assert!(fetch.is_async);
+        assert!(fetch.signature.as_ref().unwrap().contains("Promise"));
+    }
+
+    #[test]
+    fn test_extract_typescript_arrow_functions() {
+        let code = r#"
+const multiply = (x: number, y: number): number => x * y;
+
+export const divide = (a: number, b: number): number => {
+    return a / b;
+};
+
+const asyncOperation = async (): Promise<void> => {
+    await fetch('api');
+};
+"#;
+        let tree = parse(code, Language::TypeScript).unwrap();
+        let symbols = extract_symbols(&tree, code, Language::TypeScript);
+
+        assert_eq!(symbols.len(), 3);
+
+        // multiply
+        let multiply = symbols.iter().find(|s| s.name == "multiply").unwrap();
+        assert_eq!(multiply.kind, SymbolKind::Function);
+        assert!(!multiply.is_async);
+        assert_eq!(multiply.visibility, Visibility::Private);
+        assert!(multiply.signature.as_ref().unwrap().contains("=>"));
+
+        // divide (exported)
+        let divide = symbols.iter().find(|s| s.name == "divide").unwrap();
+        assert_eq!(divide.visibility, Visibility::Public);
+
+        // asyncOperation
+        let async_op = symbols.iter().find(|s| s.name == "asyncOperation").unwrap();
+        assert!(async_op.is_async);
+    }
+
+    #[test]
+    fn test_extract_typescript_class() {
+        let code = r#"
+class Person {
+    name: string;
+    age: number;
+
+    constructor(name: string, age: number) {
+        this.name = name;
+        this.age = age;
+    }
+}
+
+export class Employee extends Person {
+    employeeId: number;
+
+    constructor(name: string, age: number, id: number) {
+        super(name, age);
+        this.employeeId = id;
+    }
+}
+"#;
+        let tree = parse(code, Language::TypeScript).unwrap();
+        let symbols = extract_symbols(&tree, code, Language::TypeScript);
+
+        assert_eq!(symbols.len(), 2);
+
+        // Person
+        let person = symbols.iter().find(|s| s.name == "Person").unwrap();
+        assert_eq!(person.kind, SymbolKind::Class);
+        assert_eq!(person.visibility, Visibility::Private);
+
+        // Employee (exported, extends Person)
+        let employee = symbols.iter().find(|s| s.name == "Employee").unwrap();
+        assert_eq!(employee.visibility, Visibility::Public);
+        assert!(employee.signature.as_ref().unwrap().contains("Person"));
+    }
+
+    #[test]
+    fn test_extract_typescript_interface() {
+        let code = r#"
+interface User {
+    id: number;
+    name: string;
+    email: string;
+}
+
+export interface Admin extends User {
+    permissions: string[];
+}
+
+interface Config {
+    apiKey: string;
+    timeout: number;
+}
+"#;
+        let tree = parse(code, Language::TypeScript).unwrap();
+        let symbols = extract_symbols(&tree, code, Language::TypeScript);
+
+        assert_eq!(symbols.len(), 3);
+
+        // User
+        let user = symbols.iter().find(|s| s.name == "User").unwrap();
+        assert_eq!(user.kind, SymbolKind::Interface);
+        assert_eq!(user.visibility, Visibility::Private);
+
+        // Admin (exported, extends User)
+        let admin = symbols.iter().find(|s| s.name == "Admin").unwrap();
+        assert_eq!(admin.visibility, Visibility::Public);
+        assert!(admin.signature.as_ref().unwrap().contains("extends") && admin.signature.as_ref().unwrap().contains("User"));
+
+        // Config
+        let config = symbols.iter().find(|s| s.name == "Config").unwrap();
+        assert_eq!(config.kind, SymbolKind::Interface);
+    }
+
+    #[test]
+    fn test_extract_typescript_type_alias() {
+        let code = r#"
+type ID = string | number;
+
+export type Callback = (data: string) => void;
+
+type Status = "pending" | "active" | "completed";
+"#;
+        let tree = parse(code, Language::TypeScript).unwrap();
+        let symbols = extract_symbols(&tree, code, Language::TypeScript);
+
+        assert_eq!(symbols.len(), 3);
+
+        // ID
+        let id = symbols.iter().find(|s| s.name == "ID").unwrap();
+        assert_eq!(id.kind, SymbolKind::TypeAlias);
+        assert_eq!(id.visibility, Visibility::Private);
+        assert!(id.signature.as_ref().unwrap().contains("|"));
+
+        // Callback (exported)
+        let callback = symbols.iter().find(|s| s.name == "Callback").unwrap();
+        assert_eq!(callback.visibility, Visibility::Public);
+        assert!(callback.signature.as_ref().unwrap().contains("=>"));
+
+        // Status
+        let status = symbols.iter().find(|s| s.name == "Status").unwrap();
+        assert!(status.signature.as_ref().unwrap().contains("\"pending\""));
+    }
+
+    #[test]
+    fn test_extract_javascript_symbols() {
+        let code = r#"
+function calculate(x, y) {
+    return x + y;
+}
+
+const square = (n) => n * n;
+
+class Calculator {
+    add(a, b) {
+        return a + b;
+    }
+}
+"#;
+        let tree = parse(code, Language::JavaScript).unwrap();
+        let symbols = extract_symbols(&tree, code, Language::JavaScript);
+
+        // Should extract function, arrow function, and class (no interfaces/type aliases in JS)
+        assert!(symbols.len() >= 3);
+
+        let calc_fn = symbols.iter().find(|s| s.name == "calculate").unwrap();
+        assert_eq!(calc_fn.kind, SymbolKind::Function);
+
+        let square_fn = symbols.iter().find(|s| s.name == "square").unwrap();
+        assert_eq!(square_fn.kind, SymbolKind::Function);
+
+        let calc_class = symbols.iter().find(|s| s.name == "Calculator").unwrap();
+        assert_eq!(calc_class.kind, SymbolKind::Class);
+    }
+
+    // ============================================
+    // Go Tests
+    // ============================================
+
+    #[test]
+    fn test_extract_go_function() {
+        let code = r#"
+package main
+
+func hello() {
+    println("Hello")
+}
+
+func Add(a, b int) int {
+    return a + b
+}
+
+func processData(data []byte) (result string, err error) {
+    return string(data), nil
+}
+"#;
+        let tree = parse(code, Language::Go).unwrap();
+        let symbols = extract_symbols(&tree, code, Language::Go);
+
+        let functions: Vec<_> = symbols
+            .iter()
+            .filter(|s| s.kind == SymbolKind::Function)
+            .collect();
+        assert!(functions.len() >= 3);
+
+        // hello (private - lowercase)
+        let hello = symbols.iter().find(|s| s.name == "hello").unwrap();
+        assert_eq!(hello.kind, SymbolKind::Function);
+        assert_eq!(hello.visibility, Visibility::Private);
+
+        // Add (public - uppercase)
+        let add = symbols.iter().find(|s| s.name == "Add").unwrap();
+        assert_eq!(add.visibility, Visibility::Public);
+        assert!(add.signature.as_ref().unwrap().contains("int"));
+
+        // processData (multiple return values)
+        let process = symbols.iter().find(|s| s.name == "processData").unwrap();
+        assert!(process.signature.as_ref().unwrap().contains("result"));
+        assert!(process.signature.as_ref().unwrap().contains("error"));
+    }
+
+    #[test]
+    fn test_extract_go_method() {
+        let code = r#"
+package main
+
+type Counter struct {
+    value int
+}
+
+func (c *Counter) Increment() {
+    c.value++
+}
+
+func (c Counter) Value() int {
+    return c.value
+}
+
+func (c *Counter) Add(n int) {
+    c.value += n
+}
+"#;
+        let tree = parse(code, Language::Go).unwrap();
+        let symbols = extract_symbols(&tree, code, Language::Go);
+
+        let methods: Vec<_> = symbols
+            .iter()
+            .filter(|s| s.kind == SymbolKind::Method)
+            .collect();
+        assert!(methods.len() >= 3);
+
+        // Increment (pointer receiver)
+        let increment = methods.iter().find(|s| s.name == "Increment").unwrap();
+        assert_eq!(increment.visibility, Visibility::Public);
+        assert!(increment.signature.as_ref().unwrap().contains("Counter"));
+
+        // Value (value receiver)
+        let value = methods.iter().find(|s| s.name == "Value").unwrap();
+        assert!(value.signature.as_ref().unwrap().contains("Counter"));
+
+        // Add (pointer receiver with parameter)
+        let add = methods.iter().find(|s| s.name == "Add").unwrap();
+        assert!(add.signature.as_ref().unwrap().contains("int"));
+    }
+
+    #[test]
+    fn test_extract_go_struct() {
+        let code = r#"
+package main
+
+type person struct {
+    name string
+    age  int
+}
+
+type User struct {
+    ID    int
+    Email string
+}
+
+type Config struct {
+    Host string
+    Port int
+}
+"#;
+        let tree = parse(code, Language::Go).unwrap();
+        let symbols = extract_symbols(&tree, code, Language::Go);
+
+        let structs: Vec<_> = symbols
+            .iter()
+            .filter(|s| s.kind == SymbolKind::Struct)
+            .collect();
+        assert!(structs.len() >= 3);
+
+        // person (private - lowercase)
+        let person = structs.iter().find(|s| s.name == "person").unwrap();
+        assert_eq!(person.visibility, Visibility::Private);
+        assert!(person.signature.as_ref().unwrap().contains("struct"));
+
+        // User (public - uppercase)
+        let user = structs.iter().find(|s| s.name == "User").unwrap();
+        assert_eq!(user.visibility, Visibility::Public);
+
+        // Config
+        let config = structs.iter().find(|s| s.name == "Config").unwrap();
+        assert_eq!(config.visibility, Visibility::Public);
+    }
+
+    #[test]
+    fn test_extract_go_interface() {
+        let code = r#"
+package main
+
+type reader interface {
+    Read(p []byte) (n int, err error)
+}
+
+type Writer interface {
+    Write(p []byte) (n int, err error)
+}
+
+type ReadWriter interface {
+    reader
+    Writer
+}
+"#;
+        let tree = parse(code, Language::Go).unwrap();
+        let symbols = extract_symbols(&tree, code, Language::Go);
+
+        let interfaces: Vec<_> = symbols
+            .iter()
+            .filter(|s| s.kind == SymbolKind::Interface)
+            .collect();
+        assert!(interfaces.len() >= 3);
+
+        // reader (private)
+        let reader = interfaces.iter().find(|s| s.name == "reader").unwrap();
+        assert_eq!(reader.visibility, Visibility::Private);
+        assert!(reader.signature.as_ref().unwrap().contains("interface"));
+
+        // Writer (public)
+        let writer = interfaces.iter().find(|s| s.name == "Writer").unwrap();
+        assert_eq!(writer.visibility, Visibility::Public);
+
+        // ReadWriter (embedded interfaces)
+        let rw = interfaces.iter().find(|s| s.name == "ReadWriter").unwrap();
+        assert_eq!(rw.visibility, Visibility::Public);
+    }
+
+    #[test]
+    fn test_extract_go_type_alias() {
+        let code = r#"
+package main
+
+type ID int
+type StringMap map[string]string
+type Handler func(w http.ResponseWriter, r *http.Request)
+"#;
+        let tree = parse(code, Language::Go).unwrap();
+        let symbols = extract_symbols(&tree, code, Language::Go);
+
+        let type_aliases: Vec<_> = symbols
+            .iter()
+            .filter(|s| s.kind == SymbolKind::TypeAlias)
+            .collect();
+        assert!(type_aliases.len() >= 3);
+
+        // ID
+        let id = type_aliases.iter().find(|s| s.name == "ID").unwrap();
+        assert_eq!(id.visibility, Visibility::Public);
+        assert!(id.signature.as_ref().unwrap().contains("int"));
+
+        // StringMap
+        let string_map = type_aliases.iter().find(|s| s.name == "StringMap").unwrap();
+        assert!(string_map.signature.as_ref().unwrap().contains("map"));
+
+        // Handler (function type)
+        let handler = type_aliases.iter().find(|s| s.name == "Handler").unwrap();
+        assert!(handler.signature.as_ref().unwrap().contains("func"));
     }
 }

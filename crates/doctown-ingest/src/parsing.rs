@@ -32,8 +32,9 @@ impl Parser {
         match language {
             Language::Rust => Some(tree_sitter_rust::LANGUAGE.into()),
             Language::Python => Some(tree_sitter_python::LANGUAGE.into()),
-            // Other languages not yet supported
-            Language::TypeScript | Language::JavaScript | Language::Go => None,
+            Language::TypeScript => Some(tree_sitter_typescript::LANGUAGE_TYPESCRIPT.into()),
+            Language::JavaScript => Some(tree_sitter_javascript::LANGUAGE.into()),
+            Language::Go => Some(tree_sitter_go::LANGUAGE.into()),
         }
     }
 
@@ -44,7 +45,7 @@ impl Parser {
 
     /// Returns a list of all supported languages.
     pub fn supported_languages() -> &'static [Language] {
-        &[Language::Rust, Language::Python]
+        &[Language::Rust, Language::Python, Language::TypeScript, Language::JavaScript, Language::Go]
     }
 
     /// Parses source code using the appropriate grammar for the given language.
@@ -623,24 +624,24 @@ def main():
     // ============================================
 
     #[test]
-    fn test_parse_unsupported_language() {
-        let code = "package main\nfunc main() {}";
-        let tree = parse(code, Language::Go);
-        assert!(tree.is_none());
-    }
-
-    #[test]
-    fn test_parse_typescript_unsupported() {
+    fn test_parse_typescript() {
         let code = "const x: number = 5;";
         let tree = parse(code, Language::TypeScript);
-        assert!(tree.is_none());
+        assert!(tree.is_some());
     }
 
     #[test]
-    fn test_parse_javascript_unsupported() {
+    fn test_parse_javascript() {
         let code = "const x = 5;";
         let tree = parse(code, Language::JavaScript);
-        assert!(tree.is_none());
+        assert!(tree.is_some());
+    }
+
+    #[test]
+    fn test_parse_go() {
+        let code = "package main\nfunc main() {}";
+        let tree = parse(code, Language::Go);
+        assert!(tree.is_some());
     }
 
     // ============================================
@@ -685,9 +686,9 @@ def main():
     fn test_parser_is_supported() {
         assert!(Parser::is_supported(Language::Rust));
         assert!(Parser::is_supported(Language::Python));
-        assert!(!Parser::is_supported(Language::Go));
-        assert!(!Parser::is_supported(Language::TypeScript));
-        assert!(!Parser::is_supported(Language::JavaScript));
+        assert!(Parser::is_supported(Language::Go));
+        assert!(Parser::is_supported(Language::TypeScript));
+        assert!(Parser::is_supported(Language::JavaScript));
     }
 
     #[test]
@@ -695,7 +696,9 @@ def main():
         let supported = Parser::supported_languages();
         assert!(supported.contains(&Language::Rust));
         assert!(supported.contains(&Language::Python));
-        assert!(!supported.contains(&Language::Go));
+        assert!(supported.contains(&Language::Go));
+        assert!(supported.contains(&Language::TypeScript));
+        assert!(supported.contains(&Language::JavaScript));
     }
 
     #[test]

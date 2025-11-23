@@ -608,30 +608,36 @@
 # You will have actual paying users at this stage.
 # ═══════════════════════════════════════════════════════════════════════════════
 
+2025-11-23:
+I can definitely do local inference using ONNX models now. The bottleneck before was
+running my builder pipeline on a serverless endpoint which was deployment hell.
+Now? Persistent CPU Pod. Which means it stays warm 24/7. Which means we can load ONNX embeddings ONCE and
+have them persist until that instance is shut down entirely. Perfect, solves the infra headache from v4.
+
 ## M2.0: Additional Languages (Optional but valuable)
 
 ### M2.0.1 TypeScript/JavaScript Support
-- [ ] Add tree-sitter-typescript grammar
-- [ ] Add tree-sitter-javascript grammar (for .js files)
-- [ ] Extract function declarations
-- [ ] Extract arrow function assignments (`const foo = () => {}`)
-- [ ] Extract class declarations
-- [ ] Extract interface declarations
-- [ ] Extract type alias declarations
-- [ ] Extract method definitions
-- [ ] Capture export status
-- [ ] [T] Unit tests for TS symbol extraction
-- [ ] [T] Integration test: parse real TS file
+- [x] Add tree-sitter-typescript grammar
+- [x] Add tree-sitter-javascript grammar (for .js files)
+- [x] Extract function declarations
+- [x] Extract arrow function assignments (`const foo = () => {}`)
+- [x] Extract class declarations
+- [x] Extract interface declarations
+- [x] Extract type alias declarations
+- [x] Extract method definitions
+- [x] Capture export status
+- [x] [T] Unit tests for TS symbol extraction
+- [x] [T] Integration test: parse real TS file
 
 ### M2.0.2 Go Support
-- [ ] Add tree-sitter-go grammar
-- [ ] Extract function declarations
-- [ ] Extract method declarations (with receiver)
-- [ ] Extract struct declarations
-- [ ] Extract interface declarations
-- [ ] Extract type declarations
-- [ ] [T] Unit tests for Go symbol extraction
-- [ ] [T] Integration test: parse real Go file
+- [x] Add tree-sitter-go grammar
+- [x] Extract function declarations
+- [x] Extract method declarations (with receiver)
+- [x] Extract struct declarations
+- [x] Extract interface declarations
+- [x] Extract type declarations
+- [x] [T] Unit tests for Go symbol extraction
+- [x] [T] Integration test: parse real Go file
 
 ---
 
