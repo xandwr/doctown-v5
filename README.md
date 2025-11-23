@@ -1,3 +1,29 @@
+# Doctown v5
+
+Intelligent code documentation and understanding platform.
+
+## Quick Start
+
+Start the complete development environment:
+
+```bash
+./dev.sh
+```
+
+This will start:
+- Backend API server on http://127.0.0.1:3000
+- Frontend dev server on http://localhost:5173
+
+For detailed setup instructions, see [DEV_SETUP.md](DEV_SETUP.md).
+
+## Stopping Services
+
+```bash
+./stop.sh
+```
+
+Or press `Ctrl+C` when running `dev.sh`.
+
 ## Roadmap Overview
 
 - [TODO.md](TODO.md)

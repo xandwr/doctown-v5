@@ -47,6 +47,18 @@ pub struct IngestRequest {
     pub job_id: String,
 }
 
+/// Query parameters for the GET /ingest endpoint
+#[derive(Debug, Deserialize)]
+pub struct IngestQuery {
+    /// GitHub repository URL
+    pub repo_url: String,
+    /// Git reference (branch, tag, or commit)
+    #[serde(default = "default_git_ref")]
+    pub git_ref: String,
+    /// Job ID for tracking
+    pub job_id: String,
+}
+
 fn default_git_ref() -> String {
     "main".to_string()
 }
@@ -84,18 +96,10 @@ impl IngestRequest {
     }
 }
 
-/// POST /ingest endpoint handler
-/// 
-/// Validates the request, runs the ingest pipeline, and streams events via SSE.
-async fn ingest(req: web::Json<IngestRequest>) -> impl Responder {
-    // Validate request
-    if let Err(e) = req.validate() {
-        return HttpResponse::BadRequest()
-            .json(ErrorResponse { error: e });
-    }
-
+/// Core handler logic for ingest requests
+async fn handle_ingest_request(repo_url: String, git_ref: String, job_id_str: String) -> HttpResponse {
     // Parse job_id and github_url
-    let job_id = match JobId::new(&req.job_id) {
+    let job_id = match JobId::new(&job_id_str) {
         Ok(id) => id,
         Err(e) => {
             return HttpResponse::BadRequest()
@@ -103,11 +107,11 @@ async fn ingest(req: web::Json<IngestRequest>) -> impl Responder {
         }
     };
 
-    let github_url = match GitHubUrl::parse(&req.repo_url) {
+    let github_url = match GitHubUrl::parse(&repo_url) {
         Ok(mut url) => {
             // Set git_ref if provided and not default
-            if req.git_ref != "main" && !req.git_ref.is_empty() {
-                url.git_ref = Some(req.git_ref.clone());
+            if git_ref != "main" && !git_ref.is_empty() {
+                url.git_ref = Some(git_ref.clone());
             }
             url
         }
@@ -174,6 +178,26 @@ async fn ingest(req: web::Json<IngestRequest>) -> impl Responder {
         .streaming(stream)
 }
 
+/// POST /ingest endpoint handler
+/// 
+/// Validates the request, runs the ingest pipeline, and streams events via SSE.
+async fn ingest_post(req: web::Json<IngestRequest>) -> impl Responder {
+    // Validate request
+    if let Err(e) = req.validate() {
+        return HttpResponse::BadRequest()
+            .json(ErrorResponse { error: e });
+    }
+
+    handle_ingest_request(req.repo_url.clone(), req.git_ref.clone(), req.job_id.clone()).await
+}
+
+/// GET /ingest endpoint handler
+/// 
+/// Accepts query parameters, runs the ingest pipeline, and streams events via SSE.
+async fn ingest_get(query: web::Query<IngestQuery>) -> impl Responder {
+    handle_ingest_request(query.repo_url.clone(), query.git_ref.clone(), query.job_id.clone()).await
+}
+
 /// Health check endpoint handler
 /// 
 /// GET /health returns {"status": "ok", "version": "..."}
@@ -215,7 +239,8 @@ pub async fn start_server(config: ServerConfig) -> std::io::Result<()> {
             .wrap(cors)
             .app_data(web::PayloadConfig::new(config.max_body_size))
             .route("/health", web::get().to(health))
-            .route("/ingest", web::post().to(ingest))
+            .route("/ingest", web::get().to(ingest_get))
+            .route("/ingest", web::post().to(ingest_post))
     })
         .bind(&bind_addr)?
         .run();

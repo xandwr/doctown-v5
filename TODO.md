@@ -4,6 +4,39 @@
 >
 > **Shipping Strategy:** Six milestones, each a deployable product. Ship early, validate often.
 
+## 🎯 Current Status (Updated: November 23, 2025)
+
+**Milestone 1 Progress: ~85% Complete**
+
+### ✅ What's Working
+- **Backend API**: Full ingest pipeline with SSE streaming on port 3000
+  - GET/POST `/ingest` endpoints accepting GitHub URLs
+  - Tree-sitter parsing for Rust and Python
+  - Symbol extraction (functions, structs, classes, methods, etc.)
+  - Chunk creation with stable IDs
+  - Event envelope system with proper sequencing
+  - GitHub repo download and extraction
+
+- **Frontend**: Basic SvelteKit app with SSE client on port 5173
+  - Repo URL input with validation
+  - SSE client with auto-reconnection
+  - Real-time event display
+  - Error handling and loading states
+
+- **Development Environment**: 
+  - Cargo workspace with 3 crates (common, events, ingest)
+  - Builder binary for running API server
+  - Configured CORS for local dev
+  - Tailwind CSS v4 setup
+
+### 🚧 In Progress
+- Improved progress display and UI polish
+- File tree and symbol visualization components
+
+### ⏭️ Next Up
+- Complete results display UI (M1.11.5)
+- Deployment to RunPod + Vercel (M1.12)
+
 ---
 
 ## Legend
@@ -51,6 +84,13 @@
 - [x] Add `cargo clippy -- -D warnings` step
 - [x] Add `cargo test` step
 - [x] Add `cargo build --release` step
+
+### M1.0.4 Development Environment
+- [x] Create root `.env` for environment variables
+- [x] Create `builder/` binary crate for API server
+- [x] Configure builder to run on port 3000
+- [x] Configure CORS for local development
+- [x] Add development documentation (SETUP_COMPLETE.md)
 
 ---
 
@@ -360,7 +400,8 @@
 - [x] [T] Integration test: health endpoint responds
 
 ### M1.9.3 Ingest Endpoint
-- [x] Implement `POST /ingest` endpoint
+- [x] Implement `POST /ingest` endpoint (JSON body)
+- [x] Implement `GET /ingest` endpoint (query params for SSE)
 - [x] Define request schema:
   ```json
   {
@@ -427,37 +468,38 @@
 ## M1.11: Website - Ingest UI (`website/`)
 
 ### M1.11.1 Project Setup
-- [ ] Initialize SvelteKit project
-- [ ] Set up TypeScript
-- [ ] Set up Tailwind CSS
-- [ ] Set up ESLint + Prettier
-- [ ] [T] Verify dev server runs
+- [x] Initialize SvelteKit project
+- [x] Set up TypeScript
+- [x] Set up Tailwind CSS v4 (with @tailwindcss/postcss)
+- [x] Set up ESLint + Prettier
+- [x] [T] Verify dev server runs
 
 ### M1.11.2 Repository Input
-- [ ] Create repo URL input component
-- [ ] Implement URL validation (GitHub URL pattern)
-- [ ] Show validation errors inline
-- [ ] Create submit button
-- [ ] Show loading state during submission
-- [ ] [T] Component test: URL validation
+- [x] Create repo URL input component
+- [x] Implement URL validation (GitHub URL pattern)
+- [x] Show validation errors inline
+- [x] Create submit button
+- [x] Show loading state during submission
+- [~] [T] Component test: URL validation
 
 ### M1.11.3 SSE Client
-- [ ] Implement EventSource wrapper
-- [ ] Parse incoming JSON events
-- [ ] Handle connection errors
-- [ ] Handle reconnection
-- [ ] [T] Unit test: event parsing
+- [x] Implement EventSource wrapper
+- [x] Parse incoming JSON events
+- [x] Handle connection errors
+- [x] Handle reconnection with exponential backoff
+- [x] [T] Unit test: event parsing
 
 ### M1.11.4 Progress Display
-- [ ] Create progress panel component
-- [ ] Show "Ingesting..." status
-- [ ] Show file count (detected / skipped)
-- [ ] Show chunk count (incrementing live)
+- [x] Create progress panel component
+- [x] Show "Ingesting..." status
+- [x] Show file count (detected / skipped)
+- [~] Show chunk count (incrementing live)
 - [ ] Show language breakdown
 - [ ] Show current file being processed
 - [ ] [T] Component test: progress updates
 
 ### M1.11.5 Results Display
+- [~] Create event display component (currently showing raw events)
 - [ ] Create file tree component
 - [ ] Show all detected files with language icons
 - [ ] Show symbol count per file
@@ -469,9 +511,10 @@
 - [ ] [T] Component test: symbol list rendering
 
 ### M1.11.6 Error Handling
-- [ ] Show error state if ingest fails
-- [ ] Display error message from event
-- [ ] Allow retry
+- [x] Show error state if ingest fails
+- [x] Display error message from event
+- [x] Allow disconnect/retry
+- [ ] Improve error message formatting
 
 ---
 

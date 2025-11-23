@@ -2,6 +2,7 @@
 resolver = "2"
 
 members = [
+    "builder",
     "crates/doctown-common",
     "crates/doctown-events",
     "crates/doctown-ingest",
