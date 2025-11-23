@@ -186,6 +186,44 @@ impl fmt::Display for Visibility {
     }
 }
 
+/// A function or method call extracted from source code.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct Call {
+    /// The name of the called function/method
+    pub name: String,
+    /// Byte range of the call expression
+    pub range: ByteRange,
+    /// The type of call (function, method, etc.)
+    pub kind: CallKind,
+    /// Whether the target is resolved (true) or external/unknown (false)
+    pub is_resolved: bool,
+}
+
+/// The kind of call being made.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum CallKind {
+    /// Regular function call: `foo()`
+    Function,
+    /// Method call: `obj.method()`
+    Method,
+    /// Associated function call: `Type::function()`
+    Associated,
+    /// Constructor/instantiation: `new Class()` or `Class()`
+    Constructor,
+}
+
+impl fmt::Display for CallKind {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            CallKind::Function => write!(f, "function"),
+            CallKind::Method => write!(f, "method"),
+            CallKind::Associated => write!(f, "associated"),
+            CallKind::Constructor => write!(f, "constructor"),
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

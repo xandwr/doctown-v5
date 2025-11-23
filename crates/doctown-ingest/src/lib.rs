@@ -7,6 +7,7 @@
 //! - Streaming events via SSE
 
 pub mod archive;
+pub mod calls;
 pub mod chunk;
 pub mod filter;
 pub mod github;
@@ -18,6 +19,7 @@ pub mod traversal;
 pub mod api;
 
 pub use archive::{extract_zip, process_extracted_files};
+pub use calls::extract_calls;
 pub use chunk::{create_chunks, Chunk, ChunkMetadata, ChunkingConfig};
 pub use filter::{
     normalize_archive_path, FileFilter, FilterResult, SkipReason as FilterSkipReason,

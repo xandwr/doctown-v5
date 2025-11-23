@@ -644,19 +644,32 @@ have them persist until that instance is shut down entirely. Perfect, solves the
 ## M2.1: Call Graph Extraction (`doctown-ingest`)
 
 ### M2.1.1 Call Detection - Rust
-- [ ] Extract function calls within function bodies
-- [ ] Extract method calls (including self.method())
-- [ ] Extract associated function calls (Type::function())
-- [ ] Track call target (resolved symbol ID or unresolved name)
-- [ ] [T] Unit test: detect direct function calls
-- [ ] [T] Unit test: detect method calls
-- [ ] [T] Unit test: detect chained calls
+- [x] Extract function calls within function bodies
+- [x] Extract method calls (including self.method())
+- [x] Extract associated function calls (Type::function())
+- [x] Track call target (resolved symbol ID or unresolved name)
+- [x] [T] Unit test: detect direct function calls
+- [x] [T] Unit test: detect method calls
+- [x] [T] Unit test: detect chained calls
 
 ### M2.1.2 Call Detection - Python
-- [ ] Extract function calls
-- [ ] Extract method calls
-- [ ] Extract class instantiation (constructor calls)
-- [ ] [T] Unit tests for Python call detection
+- [x] Extract function calls
+- [x] Extract method calls
+- [x] Extract class instantiation (constructor calls)
+- [x] [T] Unit tests for Python call detection
+
+### M2.1.3 Call Detection - TypeScript/JavaScript
+- [x] Extract function calls
+- [x] Extract method calls
+- [x] Extract constructor calls (new expressions)
+- [x] [T] Unit tests for TypeScript call detection
+- [x] [T] Unit tests for JavaScript call detection
+
+### M2.1.4 Call Detection - Go
+- [x] Extract function calls
+- [x] Extract method calls
+- [x] Extract package function calls (pkg.Function())
+- [x] [T] Unit tests for Go call detection
 
 ### M2.1.3 Symbol Resolution
 - [ ] Build symbol table during extraction
@@ -693,7 +706,7 @@ have them persist until that instance is shut down entirely. Perfect, solves the
 - [ ] Implement model warmup on startup
 - [ ] Implement single text embedding function
 - [ ] Implement batch embedding function
-- [ ] Handle GPU if available, fallback to CPU
+- [ ] ~~Handle GPU if available, fallback to CPU~~ SCRATCH: We can get away with CPU ONNX eval for embeddings now because we now don't run it serverless
 - [ ] [T] Unit test: embed single text returns 384-dim vector
 - [ ] [T] Unit test: embed batch returns correct shape
 - [ ] [T] Benchmark: throughput on GPU vs CPU
