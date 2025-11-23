@@ -387,6 +387,10 @@
 
 ## M1.10: Ingest Pipeline (`doctown-ingest`)
 
+- [x] M1.10.1: Unzip downloaded repository archive
+- [x] M1.10.2: Walk through extracted files and process them
+- [x] M1.10.3: Extract symbols for each file
+
 ### M1.10.1 Pipeline Orchestration
 - [ ] Wire up: receive request → validate → download → parse → stream
 - [ ] Create event emitter channel

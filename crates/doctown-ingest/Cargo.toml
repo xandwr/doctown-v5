@@ -19,6 +19,8 @@ futures-util = { workspace = true }
 tree-sitter = "0.22.6"
 tree-sitter-rust = "0.21.0"
 tree-sitter-tags = "0.22.6"
+zip = "6.0.0"
+walkdir = "2.5.0"
 
 [dev-dependencies]
 pretty_assertions = { workspace = true }
