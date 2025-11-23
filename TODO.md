@@ -171,59 +171,59 @@
 - [x] [T] Unit test: extract function with lifetime params
 
 ### M1.5.2 Struct Extraction
-- [ ] Extract `struct` definitions
-- [ ] Capture struct name
-- [ ] Capture generics
-- [ ] Capture field names (for context)
-- [ ] Capture byte range
-- [ ] Capture visibility
-- [ ] [T] Unit test: extract simple struct
-- [ ] [T] Unit test: extract tuple struct
-- [ ] [T] Unit test: extract generic struct
+- [x] Extract `struct` definitions
+- [x] Capture struct name
+- [x] Capture generics
+- [x] Capture field names (for context)
+- [x] Capture byte range
+- [x] Capture visibility
+- [x] [T] Unit test: extract simple struct
+- [x] [T] Unit test: extract tuple struct
+- [x] [T] Unit test: extract generic struct
 
 ### M1.5.3 Enum Extraction
-- [ ] Extract `enum` definitions
-- [ ] Capture enum name
-- [ ] Capture variant names
-- [ ] Capture byte range
-- [ ] [T] Unit test: extract simple enum
-- [ ] [T] Unit test: extract enum with data variants
+- [x] Extract `enum` definitions
+- [x] Capture enum name
+- [x] Capture variant names
+- [x] Capture byte range
+- [x] [T] Unit test: extract simple enum
+- [x] [T] Unit test: extract enum with data variants
 
 ### M1.5.4 Trait Extraction
-- [ ] Extract `trait` definitions
-- [ ] Capture trait name
-- [ ] Capture method signatures
-- [ ] Capture byte range
-- [ ] [T] Unit test: extract trait with methods
+- [x] Extract `trait` definitions
+- [x] Capture trait name
+- [x] Capture method signatures
+- [x] Capture byte range
+- [x] [T] Unit test: extract trait with methods
 
 ### M1.5.5 Impl Block Extraction
-- [ ] Extract `impl` blocks
-- [ ] Capture target type
-- [ ] Capture trait being implemented (if any)
-- [ ] Capture methods within impl
-- [ ] Capture byte range
-- [ ] [T] Unit test: extract inherent impl
-- [ ] [T] Unit test: extract trait impl
+- [x] Extract `impl` blocks
+- [x] Capture target type
+- [x] Capture trait being implemented (if any)
+- [x] Capture methods within impl
+- [x] Capture byte range
+- [x] [T] Unit test: extract inherent impl
+- [x] [T] Unit test: extract trait impl
 
 ### M1.5.6 Module Extraction
-- [ ] Extract `mod` declarations
-- [ ] Capture module name
-- [ ] Distinguish inline vs file modules
-- [ ] Capture byte range
-- [ ] [T] Unit test: extract inline module
-- [ ] [T] Unit test: extract file module declaration
+- [x] Extract `mod` declarations
+- [x] Capture module name
+- [x] Distinguish inline vs file modules
+- [x] Capture byte range
+- [x] [T] Unit test: extract inline module
+- [x] [T] Unit test: extract file module declaration
 
 ### M1.5.7 Other Items
-- [ ] Extract `const` items
-- [ ] Extract `static` items
-- [ ] Extract `type` aliases
-- [ ] Extract `macro_rules!` definitions
-- [ ] [T] Unit tests for each item type
+- [x] Extract `const` items
+- [x] Extract `static` items
+- [x] Extract `type` aliases
+- [x] Extract `macro_rules!` definitions
+- [x] [T] Unit tests for each item type
 
 ### M1.5.8 Rust Integration Test
-- [ ] [T] Integration test: parse real Rust file (e.g., from std lib)
-- [ ] [T] Verify all expected symbols extracted
-- [ ] [T] Verify byte ranges are accurate
+- [x] [T] Integration test: parse real Rust file (e.g., from std lib)
+- [x] [T] Verify all expected symbols extracted
+- [x] [T] Verify byte ranges are accurate
 
 ---
 

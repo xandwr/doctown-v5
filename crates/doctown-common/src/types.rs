@@ -108,8 +108,11 @@ pub enum SymbolKind {
     Enum,
     Method,
     Const,
+    Static,
     Interface,
     TypeAlias,
+    Impl,
+    Macro,
 }
 
 impl SymbolKind {
@@ -124,8 +127,11 @@ impl SymbolKind {
             SymbolKind::Enum => "enum",
             SymbolKind::Method => "method",
             SymbolKind::Const => "const",
+            SymbolKind::Static => "static",
             SymbolKind::Interface => "interface",
             SymbolKind::TypeAlias => "type",
+            SymbolKind::Impl => "impl",
+            SymbolKind::Macro => "macro",
         }
     }
 }
