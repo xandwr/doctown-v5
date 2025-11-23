@@ -348,11 +348,11 @@
 ## M1.9: Ingest Worker HTTP API (`doctown-ingest`)
 
 ### M1.9.1 Server Setup
-- [ ] Set up Actix-web server
-- [ ] Configure CORS for website origin
-- [ ] Configure request body size limits
-- [ ] Implement graceful shutdown
-- [ ] [T] Unit test: server starts and stops cleanly
+- [x] Set up Actix-web server
+- [x] Configure CORS for website origin
+- [x] Configure request body size limits
+- [x] Implement graceful shutdown
+- [x] [T] Unit test: server starts and stops cleanly
 
 ### M1.9.2 Health Endpoint
 - [ ] Implement `GET /health` endpoint

@@ -15,6 +15,7 @@ pub mod parsing;
 pub mod pipeline;
 pub mod symbol;
 pub mod traversal;
+pub mod api;
 
 pub use archive::{extract_zip, process_extracted_files};
 pub use chunk::{create_chunks, Chunk, ChunkMetadata, ChunkingConfig};
