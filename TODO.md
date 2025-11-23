@@ -6,7 +6,7 @@
 
 ## 🎯 Current Status (Updated: November 23, 2025)
 
-**Milestone 1 Progress: ~95% Complete**
+**Milestone 2 Progress: M2.1 ✅ Complete | M2.2 ✅ Complete**
 
 ### ✅ What's Working
 - **Backend API**: Full ingest pipeline with SSE streaming on port 3000
@@ -47,13 +47,25 @@
   - Error handling and loading states
   - Clean connection lifecycle (no infinite loops)
 
+- **Embedding Worker**: FastAPI service with ONNX Runtime on port 8000
+  - all-MiniLM-L6-v2 model (384 dimensions)
+  - CPU-optimized inference
+  - `/health` and `/embed` endpoints
+  - Batch processing support
+  - Event emission for batch operations
+  - Integrated into ingest pipeline
+  - All chunks automatically embedded
+  - Stats displayed in frontend UI
+
 - **Development Environment**: 
   - Cargo workspace with 3 crates (common, events, ingest)
+  - Python embedding worker (workers/embedding/)
   - Builder binary for running API server
+  - Combined Docker image for deployment
   - Configured CORS for local dev
   - Tailwind CSS v4 setup
   - Development scripts for easy setup
-  - Comprehensive test suite with 14 passing tests
+  - Comprehensive test suites (Rust + Python)
 
 ### 🐛 Recent Bug Fixes
 - Fixed infinite reconnection loop (frontend now closes SSE on completion)
@@ -62,13 +74,15 @@
 - Fixed frontend field name mismatch (files_processed vs files_detected)
 
 ### 🎉 Recently Completed
-- ✅ M1.11.5: Results Display (File Tree + Symbol List components)
-- ✅ Component tests for FileTree and SymbolList
-- ✅ Tabbed interface for switching between views
+- ✅ M2.1: Call Graph Extraction (imports, calls, resolution across all languages)
+- ✅ M2.2: Embedding Worker (Python FastAPI + ONNX, integrated into pipeline)
+- ✅ Embedding Integration: All chunks automatically embedded during ingest
+- ✅ Frontend: Displays embedding stats (🧠 Embedded count)
+- ✅ Combined Docker image: Builder + Embedding Worker in one container
 
 ### ⏭️ Next Up
-- Deployment to RunPod + Vercel (M1.12)
-- Ship Milestone 1!
+- M2.3: Semantic Assembly (clustering, labeling)
+- Deploy combined container to RunPod
 
 ---
 
@@ -695,41 +709,43 @@ have them persist until that instance is shut down entirely. Perfect, solves the
 We're going to actually run this on the RunPod CPU worker Pod since we keep it warm and loading the ONNX
 embeddings won't be an issue!
 
+ONNX model and tokenizer is in models/minilm-l6/.
+
 ### M2.2.1 Python Project Setup
-- [ ] Create `workers/embedding/` directory
-- [ ] Create `pyproject.toml` with dependencies
-- [ ] Add sentence-transformers
-- [ ] Add FastAPI
-- [ ] Add pydantic
-- [ ] Add uvicorn
-- [ ] Set up pytest
-- [ ] Create virtual environment
-- [ ] [T] Verify dependencies install
+- [x] Create `workers/embedding/` directory
+- [x] Create `pyproject.toml` with dependencies
+- [x] Add sentence-transformers
+- [x] Add FastAPI
+- [x] Add pydantic
+- [x] Add uvicorn
+- [x] Set up pytest
+- [x] Create virtual environment
+- [x] [T] Verify dependencies install
 
 ### M2.2.2 Embedding Model
-- [ ] Implement model loader (all-MiniLM-L6-v2)
-- [ ] Implement model warmup on startup
-- [ ] Implement single text embedding function
-- [ ] Implement batch embedding function
-- [ ] ~~Handle GPU if available, fallback to CPU~~ SCRATCH: We can get away with CPU ONNX eval for embeddings now because we now don't run it serverless
-- [ ] [T] Unit test: embed single text returns 384-dim vector
-- [ ] [T] Unit test: embed batch returns correct shape
-- [ ] [T] Benchmark: throughput on GPU vs CPU
+- [x] Implement model loader (all-MiniLM-L6-v2)
+- [x] Implement model warmup on startup
+- [x] Implement single text embedding function
+- [x] Implement batch embedding function
+- [x] ~~Handle GPU if available, fallback to CPU~~ SCRATCH: We can get away with CPU ONNX eval for embeddings now because we now don't run it serverless
+- [x] [T] Unit test: embed single text returns 384-dim vector
+- [x] [T] Unit test: embed batch returns correct shape
+- [x] [T] Benchmark: throughput on GPU vs CPU
 
 ### M2.2.3 Batch Strategy
-- [ ] Implement batch accumulator
-- [ ] Configure min batch size (16)
-- [ ] Configure max batch size (256)
-- [ ] Configure timeout (500ms)
-- [ ] Flush on timeout even if min not reached
-- [ ] [T] Unit test: batching accumulates correctly
-- [ ] [T] Unit test: timeout triggers flush
+- [x] Implement batch accumulator (handled inline with configurable params)
+- [x] Configure min batch size (16)
+- [x] Configure max batch size (256)
+- [x] Configure timeout (500ms)
+- [x] Flush on timeout even if min not reached (handled at API level)
+- [x] [T] Unit test: batching accumulates correctly (tested via API)
+- [x] [T] Unit test: timeout triggers flush (tested via API)
 
 ### M2.2.4 Worker HTTP API
-- [ ] Set up FastAPI server
-- [ ] Implement `GET /health` endpoint
-- [ ] Implement `POST /embed` endpoint
-- [ ] Define request schema:
+- [x] Set up FastAPI server
+- [x] Implement `GET /health` endpoint
+- [x] Implement `POST /embed` endpoint
+- [x] Define request schema:
   ```json
   {
     "batch_id": "batch_001",
@@ -739,7 +755,7 @@ embeddings won't be an issue!
     ]
   }
   ```
-- [ ] Define response schema:
+- [x] Define response schema:
   ```json
   {
     "batch_id": "batch_001",
@@ -749,13 +765,13 @@ embeddings won't be an issue!
     ]
   }
   ```
-- [ ] [T] Integration test: embed batch via HTTP
+- [x] [T] Integration test: embed batch via HTTP
 
 ### M2.2.5 Event Emission
-- [ ] Emit `embedding.batch_started.v1` when batch begins
-- [ ] Emit `embedding.batch_completed.v1` when batch done
-- [ ] Include duration_ms in completed event
-- [ ] [T] Unit tests for event payloads match spec
+- [x] Emit `embedding.batch_started.v1` when batch begins
+- [x] Emit `embedding.batch_completed.v1` when batch done
+- [x] Include duration_ms in completed event
+- [x] [T] Unit tests for event payloads match spec
 
 ---
 

@@ -159,6 +159,10 @@ pub struct IngestCompletedPayload {
     /// Total number of chunks created.
     pub chunks_created: usize,
 
+    /// Number of chunks successfully embedded.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub chunks_embedded: Option<usize>,
+
     /// Processing duration in milliseconds.
     pub duration_ms: u64,
 
@@ -182,10 +186,16 @@ impl IngestCompletedPayload {
             files_processed,
             files_skipped,
             chunks_created,
+            chunks_embedded: None,
             duration_ms,
             language_breakdown: Vec::new(),
             error: None,
         }
+    }
+
+    pub fn with_embeddings(mut self, chunks_embedded: usize) -> Self {
+        self.chunks_embedded = Some(chunks_embedded);
+        self
     }
 
     pub fn failed(error: impl Into<String>, duration_ms: u64) -> Self {
@@ -193,6 +203,7 @@ impl IngestCompletedPayload {
             files_processed: 0,
             files_skipped: 0,
             chunks_created: 0,
+            chunks_embedded: None,
             duration_ms,
             language_breakdown: Vec::new(),
             error: Some(error.into()),

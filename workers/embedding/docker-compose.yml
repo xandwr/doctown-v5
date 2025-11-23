@@ -1,0 +1,20 @@
+version: '3.8'
+
+services:
+  embedding-worker:
+    build: .
+    ports:
+      - "8000:8000"
+    environment:
+      - EMBEDDING_HOST=0.0.0.0
+      - EMBEDDING_PORT=8000
+      - EMBEDDING_ONNX_THREADS=4
+    volumes:
+      - ../../models/minilm-l6:/app/models/minilm-l6:ro
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 5s

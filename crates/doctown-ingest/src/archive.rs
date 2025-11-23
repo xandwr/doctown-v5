@@ -56,10 +56,11 @@ pub async fn process_extracted_files(
     repo_path: &Path,
     context: Context,
     sender: EventSender,
-) -> Result<(usize, usize, usize), DocError> {
+) -> Result<(usize, usize, usize, Vec<(ChunkId, String)>), DocError> {
     let mut files_processed = 0;
     let mut files_skipped = 0;
     let mut chunks_created = 0;
+    let mut collected_chunks = Vec::new();
 
     let filter = FileFilter::new();
 
@@ -191,15 +192,20 @@ pub async fn process_extracted_files(
                     let symbols = extract_symbols(&tree, &content, language);
                     for symbol in symbols {
                         let chunk_id = ChunkId::generate();
+                        let chunk_content = content[symbol.range.start..symbol.range.end].to_string();
+                        
+                        // Collect chunk for embedding
+                        collected_chunks.push((chunk_id.clone(), chunk_content.clone()));
+                        
                         let payload = IngestChunkCreatedPayload::new(
                             chunk_id,
                             relative_path.to_string_lossy(),
                             language,
                             symbol.range,
-                            &content[symbol.range.start..symbol.range.end],
+                            &chunk_content,
                         )
                         .with_symbol(symbol.kind, symbol.name);
-
+                        
                         sender
                             .send(
                                 Envelope::new(
@@ -256,7 +262,7 @@ pub async fn process_extracted_files(
             }
         }
     }
-    Ok((files_processed, files_skipped, chunks_created))
+    Ok((files_processed, files_skipped, chunks_created, collected_chunks))
 }
 
 #[cfg(test)]

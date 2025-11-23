@@ -1,0 +1,70 @@
+# Combined Dockerfile for Builder (Rust) + Embedding Worker (Python)
+# Runs both services in one container for simplified deployment
+
+# Stage 1: Build the Rust application
+FROM rust:1.83 as rust-builder
+
+WORKDIR /app
+
+# Copy Rust workspace files
+COPY Cargo.toml Cargo.lock rust-toolchain.toml ./
+COPY crates/ crates/
+COPY builder/Cargo.toml builder/
+COPY builder/src/ builder/src/
+
+# Build in release mode
+RUN cargo build --release --bin builder
+
+# Stage 2: Final runtime image with both services
+FROM python:3.11-slim
+
+WORKDIR /app
+
+# Install runtime dependencies
+RUN apt-get update && apt-get install -y \
+    ca-certificates \
+    curl \
+    build-essential \
+    && rm -rf /var/lib/apt/lists/*
+
+# Copy Rust builder binary
+COPY --from=rust-builder /app/target/release/builder /app/builder
+
+# Copy embedding worker
+COPY workers/embedding/app/ /app/embedding/app/
+COPY workers/embedding/pyproject.toml /app/embedding/
+
+# Copy ONNX model
+COPY models/minilm-l6/ /app/models/minilm-l6/
+
+# Install Python dependencies for embedding worker
+RUN pip install --no-cache-dir --upgrade pip && \
+    cd /app/embedding && \
+    pip install --no-cache-dir \
+    fastapi>=0.104.0 \
+    uvicorn[standard]>=0.24.0 \
+    pydantic>=2.5.0 \
+    pydantic-settings>=2.0.0 \
+    transformers>=4.30.0 \
+    onnxruntime>=1.16.0 \
+    numpy>=1.24.0
+
+# Set environment variables
+ENV PRODUCTION=true
+ENV HOST=0.0.0.0
+ENV EMBEDDING_HOST=0.0.0.0
+ENV EMBEDDING_PORT=8000
+ENV EMBEDDING_MODEL_PATH=/app/models/minilm-l6
+
+# Expose both ports
+EXPOSE 3000 8000
+
+# Health check for both services
+HEALTHCHECK --interval=30s --timeout=10s --start-period=10s --retries=3 \
+  CMD curl -f http://localhost:3000/health && curl -f http://localhost:8000/health || exit 1
+
+# Start script to run both services
+COPY start-combined.sh /app/start-combined.sh
+RUN chmod +x /app/start-combined.sh
+
+CMD ["/app/start-combined.sh"]

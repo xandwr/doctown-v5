@@ -1,10 +1,12 @@
 //! Ingest pipeline orchestration.
 
 use crate::archive::{extract_zip, process_extracted_files};
+use crate::embedding::EmbeddingClient;
 use crate::github::{GitHubClient, GitHubUrl};
 use doctown_common::{DocError, JobId};
 use doctown_events::{Context, Envelope, IngestCompletedPayload, IngestStartedPayload, Status};
 use serde_json;
+use std::env;
 use tempfile::tempdir;
 use tokio::sync::mpsc;
 use tokio_util::sync::CancellationToken;
@@ -59,29 +61,73 @@ pub async fn run_pipeline(
             extract_zip(&zip_path, &extract_dir)?;
 
             // 3. Process the extracted files
-            let (files_processed, files_skipped, chunks_created) =
+            let (files_processed, files_skipped, chunks_created, collected_chunks) =
                 process_extracted_files(&extract_dir, context.clone(), sender.clone()).await?;
 
+            // 4. Embed the chunks in batches
+            let chunks_embedded = if !collected_chunks.is_empty() {
+                let embedding_url = env::var("EMBEDDING_URL").unwrap_or_else(|_| "http://localhost:8000".to_string());
+                let embedding_client = EmbeddingClient::new(embedding_url);
+                
+                // Split into smaller batches to avoid timeouts
+                const BATCH_SIZE: usize = 256;
+                let mut total_embedded = 0;
+                
+                for (batch_num, chunk_batch) in collected_chunks.chunks(BATCH_SIZE).enumerate() {
+                    match embedding_client.embed_batch(
+                        format!("job_{}_batch_{}", context.job_id, batch_num),
+                        chunk_batch.to_vec(),
+                    ).await {
+                        Ok((vectors, duration_ms)) => {
+                            total_embedded += vectors.len();
+                            let chunks_per_sec = if duration_ms > 0 {
+                                (vectors.len() as f64 / (duration_ms as f64 / 1000.0)) as usize
+                            } else {
+                                0
+                            };
+                            eprintln!("Embedded batch {}: {} chunks in {}ms (~{} chunks/sec)", 
+                                batch_num + 1, vectors.len(), duration_ms, chunks_per_sec);
+                        }
+                        Err(e) => {
+                            // Log error but continue with other batches
+                            eprintln!("Warning: Failed to embed batch {}: {}", batch_num + 1, e);
+                        }
+                    }
+                }
+                
+                total_embedded
+            } else {
+                0
+            };
+
             dir.close()?;
-            Ok((files_processed, files_skipped, chunks_created))
+            Ok((files_processed, files_skipped, chunks_created, chunks_embedded))
         } => res,
     };
 
     let duration_ms = started_at.elapsed().as_millis() as u64;
 
     match result {
-        Ok((files_processed, files_skipped, chunks_created)) => {
+        Ok((files_processed, files_skipped, chunks_created, chunks_embedded)) => {
+            let payload = IngestCompletedPayload::success(
+                files_processed,
+                files_skipped,
+                chunks_created,
+                duration_ms,
+            );
+            
+            let payload = if chunks_embedded > 0 {
+                payload.with_embeddings(chunks_embedded)
+            } else {
+                payload
+            };
+            
             sender
                 .send(
                     Envelope::new(
                         "ingest.completed.v1",
                         context,
-                        serde_json::to_value(IngestCompletedPayload::success(
-                            files_processed,
-                            files_skipped,
-                            chunks_created,
-                            duration_ms,
-                        ))?,
+                        serde_json::to_value(payload)?,
                     )
                     .with_status(Status::Success),
                 )

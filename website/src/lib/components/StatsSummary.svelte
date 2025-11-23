@@ -11,6 +11,7 @@
 		let filesDetected = 0;
 		let filesSkipped = 0;
 		let chunksCreated = 0;
+		let chunksEmbedded = 0;
 		let repoUrl = '';
 		let status: 'idle' | 'processing' | 'completed' | 'failed' = 'idle';
 		let duration = 0;
@@ -41,6 +42,7 @@
 				if (payload.files_processed !== undefined) filesDetected = payload.files_processed;
 				if (payload.files_skipped !== undefined) filesSkipped = payload.files_skipped;
 				if (payload.chunks_created !== undefined) chunksCreated = payload.chunks_created;
+				if (payload.chunks_embedded !== undefined) chunksEmbedded = payload.chunks_embedded;
 			}
 		}
 
@@ -56,6 +58,7 @@
 			filesDetected,
 			filesSkipped,
 			chunksCreated,
+			chunksEmbedded,
 			repoUrl,
 			status,
 			duration,
@@ -131,7 +134,7 @@
 		{/if}
 
 		<!-- Main Stats Grid -->
-		<div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+		<div class="grid grid-cols-2 md:grid-cols-5 gap-4 mb-6">
 			<div class="bg-blue-50 rounded-lg p-4">
 				<div class="text-3xl font-bold text-blue-600">{stats.filesDetected}</div>
 				<div class="text-sm text-gray-600 mt-1">Files Processed</div>
@@ -141,6 +144,13 @@
 				<div class="text-3xl font-bold text-green-600">{stats.chunksCreated}</div>
 				<div class="text-sm text-gray-600 mt-1">Chunks Created</div>
 			</div>
+
+			{#if stats.chunksEmbedded > 0}
+			<div class="bg-indigo-50 rounded-lg p-4">
+				<div class="text-3xl font-bold text-indigo-600">{stats.chunksEmbedded}</div>
+				<div class="text-sm text-gray-600 mt-1">🧠 Embedded</div>
+			</div>
+			{/if}
 
 			<div class="bg-yellow-50 rounded-lg p-4">
 				<div class="text-3xl font-bold text-yellow-600">{stats.filesSkipped}</div>

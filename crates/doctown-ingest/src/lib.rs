@@ -9,6 +9,7 @@
 pub mod archive;
 pub mod calls;
 pub mod chunk;
+pub mod embedding;
 pub mod filter;
 pub mod github;
 pub mod imports;

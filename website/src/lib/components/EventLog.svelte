@@ -56,7 +56,8 @@
 		}
 		if (eventType.includes('completed')) {
 			const filesDetected = payload.files_processed || payload.files_detected || 0;
-			return `Completed (${filesDetected} files, ${payload.chunks_created || 0} chunks, ${payload.files_skipped || 0} skipped)`;
+			const embeddedText = payload.chunks_embedded > 0 ? `, ${payload.chunks_embedded} embedded` : '';
+			return `Completed (${filesDetected} files, ${payload.chunks_created || 0} chunks${embeddedText}, ${payload.files_skipped || 0} skipped)`;
 		}
 		if (eventType.includes('file_detected')) {
 			return `Detected: ${payload.file_path || 'unknown'} (${payload.language || 'unknown'})`;
