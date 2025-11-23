@@ -6,34 +6,50 @@
 
 ## 🎯 Current Status (Updated: November 23, 2025)
 
-**Milestone 1 Progress: ~85% Complete**
+**Milestone 1 Progress: ~90% Complete**
 
 ### ✅ What's Working
 - **Backend API**: Full ingest pipeline with SSE streaming on port 3000
   - GET/POST `/ingest` endpoints accepting GitHub URLs
   - Tree-sitter parsing for Rust and Python
-  - Symbol extraction (functions, structs, classes, methods, etc.)
+  - Symbol extraction (functions, structs, classes, methods, enums, traits, impl blocks)
   - Chunk creation with stable IDs
   - Event envelope system with proper sequencing
   - GitHub repo download and extraction
+  - ~700ms processing time for small repos (blazing fast!)
+  - Correct file counting (only successful parses counted as "processed")
 
-- **Frontend**: Basic SvelteKit app with SSE client on port 5173
+- **Frontend**: SvelteKit app with terminal-style event log on port 5173
   - Repo URL input with validation
-  - SSE client with auto-reconnection
-  - Real-time event display
+  - SSE client with smart reconnection (stops on completion)
+  - Terminal-style scrollable event log with:
+    - Millisecond-precision timestamps
+    - Color-coded event types
+    - Auto-scroll with manual override
+    - Event summaries (not raw JSON)
+    - Live streaming indicator
   - Error handling and loading states
+  - Clean connection lifecycle (no infinite loops)
 
 - **Development Environment**: 
   - Cargo workspace with 3 crates (common, events, ingest)
   - Builder binary for running API server
   - Configured CORS for local dev
   - Tailwind CSS v4 setup
+  - Development scripts for easy setup
+
+### 🐛 Recent Bug Fixes
+- Fixed infinite reconnection loop (frontend now closes SSE on completion)
+- Fixed file counting logic (files only counted when successfully parsed)
+- Added millisecond timestamps to show real processing speed
+- Fixed frontend field name mismatch (files_processed vs files_detected)
 
 ### 🚧 In Progress
-- Improved progress display and UI polish
+- Results summary statistics display
 - File tree and symbol visualization components
 
 ### ⏭️ Next Up
+- Add statistics summary panel (M1.11.4)
 - Complete results display UI (M1.11.5)
 - Deployment to RunPod + Vercel (M1.12)
 
@@ -492,14 +508,19 @@
 ### M1.11.4 Progress Display
 - [x] Create progress panel component
 - [x] Show "Ingesting..." status
-- [x] Show file count (detected / skipped)
-- [~] Show chunk count (incrementing live)
-- [ ] Show language breakdown
-- [ ] Show current file being processed
+- [x] Terminal-style event log with scrolling
+- [x] Show event count (incrementing live)
+- [x] Color-coded event types (started, completed, failed, detected, skipped, chunk_created)
+- [x] Millisecond-precision timestamps
+- [x] Auto-scroll with manual override toggle
+- [x] Live streaming indicator
+- [ ] Show statistics summary (files detected, chunks created, language breakdown)
 - [ ] [T] Component test: progress updates
 
 ### M1.11.5 Results Display
-- [~] Create event display component (currently showing raw events)
+- [x] Create terminal-style event log component (EventLog.svelte)
+- [x] Show event summaries (not raw JSON)
+- [ ] Create statistics summary panel
 - [ ] Create file tree component
 - [ ] Show all detected files with language icons
 - [ ] Show symbol count per file
@@ -514,7 +535,9 @@
 - [x] Show error state if ingest fails
 - [x] Display error message from event
 - [x] Allow disconnect/retry
+- [x] Fix infinite reconnection loop (close SSE on completion)
 - [ ] Improve error message formatting
+- [ ] Show failed parse errors inline in log
 
 ---
 

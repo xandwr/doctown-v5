@@ -30,9 +30,13 @@
 					}
 					events = [...events, event];
 					
-					// Auto-stop loading on completed event
+					// Auto-stop loading and disconnect on completed event
 					if (eventType?.includes('completed')) {
 						isLoading = false;
+						if (sseClient) {
+							sseClient.close();
+							sseClient = null;
+						}
 					}
 				},
 				onError: (error) => {
