@@ -1,7 +1,7 @@
 //! Symbol extraction from ASTs.
 use doctown_common::types::{ByteRange, SymbolKind};
+use streaming_iterator::StreamingIterator;
 use tree_sitter::{Query, QueryCursor, Tree};
-use tree_sitter_rust;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Symbol {
@@ -22,13 +22,13 @@ pub fn extract_symbols(
         _ => return symbols,
     };
 
-    let query = Query::new(&tree_sitter_rust::language(), query_str)
-        .expect("Failed to create query");
+    let ts_lang: tree_sitter::Language = tree_sitter_rust::LANGUAGE.into();
+    let query = Query::new(&ts_lang, query_str).expect("Failed to create query");
 
     let mut cursor = QueryCursor::new();
-    let matches = cursor.matches(&query, tree.root_node(), source_code.as_bytes());
+    let mut matches = cursor.matches(&query, tree.root_node(), source_code.as_bytes());
 
-    for mat in matches {
+    while let Some(mat) = matches.next() {
         for cap in mat.captures {
             let node = cap.node;
             let name_range = ByteRange {

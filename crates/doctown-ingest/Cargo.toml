@@ -16,9 +16,11 @@ serde_json = { workspace = true }
 url = { workspace = true }
 async-stream = { workspace = true }
 futures-util = { workspace = true }
-tree-sitter = "0.22.6"
-tree-sitter-rust = "0.21.0"
-tree-sitter-tags = "0.22.6"
+tree-sitter = "0.25.10"
+tree-sitter-rust = "0.24.0"
+tree-sitter-python = "0.25.0"
+tree-sitter-tags = "0.25.10"
+streaming-iterator = "0.1"
 zip = "6.0.0"
 walkdir = "2.5.0"
 tempfile = "3.23.0"

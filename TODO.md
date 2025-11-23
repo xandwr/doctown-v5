@@ -139,14 +139,14 @@
 ## M1.4: Tree-sitter Setup (`doctown-ingest`)
 
 ### M1.4.1 Grammar Integration
-- [ ] Add tree-sitter dependency
-- [ ] Add tree-sitter-rust grammar
-- [ ] Add tree-sitter-python grammar
-- [ ] Create `Parser` struct that selects grammar by Language
-- [ ] Implement parser pooling (reuse parsers)
-- [ ] [T] Unit test: parse simple Rust file successfully
-- [ ] [T] Unit test: parse simple Python file successfully
-- [ ] [T] Unit test: parse invalid syntax returns partial tree
+- [x] Add tree-sitter dependency
+- [x] Add tree-sitter-rust grammar
+- [x] Add tree-sitter-python grammar
+- [x] Create `Parser` struct that selects grammar by Language
+- [x] Implement parser pooling (reuse parsers)
+- [x] [T] Unit test: parse simple Rust file successfully
+- [x] [T] Unit test: parse simple Python file successfully
+- [x] [T] Unit test: parse invalid syntax returns partial tree
 
 ### M1.4.2 AST Traversal Utilities
 - [ ] Implement tree cursor wrapper
