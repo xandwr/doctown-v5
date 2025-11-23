@@ -807,18 +807,18 @@ ONNX model and tokenizer is in models/minilm-l6/.
 - [x] [T] Unit test: edge types correct
 
 ### M2.3.5 Similarity Edges
-- [ ] Compute pairwise cosine similarity
-- [ ] Add "related" edges for similarity > threshold (0.7)
-- [ ] Limit to top-k related per node (5)
-- [ ] [T] Unit test: similarity computation
-- [ ] [T] Unit test: edge count reasonable
+- [x] Compute pairwise cosine similarity
+- [x] Add "related" edges for similarity > threshold (0.7)
+- [x] Limit to top-k related per node (5)
+- [x] [T] Unit test: similarity computation
+- [x] [T] Unit test: edge count reasonable
 
 ### M2.3.6 Graph Metrics
-- [ ] Implement in-degree / out-degree calculation
-- [ ] Implement simple centrality (degree-based for now)
-- [ ] Compute graph density
-- [ ] Assign centrality scores to nodes
-- [ ] [T] Unit tests for each metric
+- [x] Implement in-degree / out-degree calculation
+- [x] Implement simple centrality (degree-based for now)
+- [x] Compute graph density
+- [x] Assign centrality scores to nodes
+- [x] [T] Unit tests for each metric
 
 ### M2.3.7 Assembly Worker API
 - [ ] Set up Actix-web server
