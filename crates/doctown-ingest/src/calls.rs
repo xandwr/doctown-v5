@@ -321,14 +321,9 @@ def main():
         let tree = parse(code, doctown_common::Language::Python).unwrap();
         let calls = extract_python_calls(&tree, code);
 
-        let class_calls: Vec<_> = calls
-            .iter()
-            .filter(|c| c.name == "MyClass")
-            .collect();
+        let class_calls: Vec<_> = calls.iter().filter(|c| c.name == "MyClass").collect();
         assert_eq!(class_calls.len(), 2);
-        assert!(class_calls
-            .iter()
-            .all(|c| c.kind == CallKind::Constructor));
+        assert!(class_calls.iter().all(|c| c.kind == CallKind::Constructor));
     }
 
     #[test]

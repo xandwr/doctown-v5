@@ -736,7 +736,7 @@ fn extract_ts_function(node: Node<'_>, source: &str) -> Option<Symbol> {
 fn extract_ts_arrow_function(node: Node<'_>, source: &str) -> Option<Symbol> {
     // Look for a variable_declarator child
     let declarator = find_child_by_kind(node, "variable_declarator")?;
-    
+
     // Get the name
     let name_node = child_by_field(declarator, "name")?;
     let name = node_text(name_node, source).to_string();
@@ -751,7 +751,9 @@ fn extract_ts_arrow_function(node: Node<'_>, source: &str) -> Option<Symbol> {
     let range = node_byte_range(node);
 
     // Check if async
-    let is_async = node_text(value_node, source).trim_start().starts_with("async");
+    let is_async = node_text(value_node, source)
+        .trim_start()
+        .starts_with("async");
 
     // Extract signature
     let signature = extract_ts_arrow_signature(name.clone(), value_node, source);
@@ -778,7 +780,7 @@ fn extract_ts_arrow_function(node: Node<'_>, source: &str) -> Option<Symbol> {
 fn extract_ts_function_signature(node: Node<'_>, source: &str) -> Option<String> {
     let name_node = child_by_field(node, "name")?;
     let name = node_text(name_node, source);
-    
+
     let params = child_by_field(node, "parameters")
         .map(|n| node_text(n, source))
         .unwrap_or("()");
@@ -2353,7 +2355,10 @@ interface Config {
         // Admin (exported, extends User)
         let admin = symbols.iter().find(|s| s.name == "Admin").unwrap();
         assert_eq!(admin.visibility, Visibility::Public);
-        assert!(admin.signature.as_ref().unwrap().contains("extends") && admin.signature.as_ref().unwrap().contains("User"));
+        assert!(
+            admin.signature.as_ref().unwrap().contains("extends")
+                && admin.signature.as_ref().unwrap().contains("User")
+        );
 
         // Config
         let config = symbols.iter().find(|s| s.name == "Config").unwrap();

@@ -61,7 +61,7 @@ fn bar(_a: i32, _b: i32) {}
     assert!(calls.iter().any(|c| c.name.contains("iter")));
     assert!(calls.iter().any(|c| c.name.contains("map")));
     assert!(calls.iter().any(|c| c.name.contains("collect")));
-    
+
     // Verify we have both function and method calls
     assert!(calls.iter().any(|c| c.kind == CallKind::Function));
     assert!(calls.iter().any(|c| c.kind == CallKind::Method));
@@ -122,7 +122,7 @@ def bar(a, b):
     assert!(calls.iter().any(|c| c.name.contains("replace")));
     assert!(calls.iter().any(|c| c.name.contains("loads")));
     assert!(calls.iter().any(|c| c.name.contains("exists")));
-    
+
     // Verify we have both function, method, and constructor calls
     assert!(calls.iter().any(|c| c.kind == CallKind::Function));
     assert!(calls.iter().any(|c| c.kind == CallKind::Method));
@@ -182,11 +182,13 @@ function bar(a: number, b: number) {}
     assert!(calls.iter().any(|c| c.name.contains("log")));
     assert!(calls.iter().any(|c| c.name == "foo"));
     assert!(calls.iter().any(|c| c.name == "bar"));
-    assert!(calls.iter().any(|c| c.name == "MyClass" && c.kind == CallKind::Constructor));
+    assert!(calls
+        .iter()
+        .any(|c| c.name == "MyClass" && c.kind == CallKind::Constructor));
     assert!(calls.iter().any(|c| c.name.contains("map")));
     assert!(calls.iter().any(|c| c.name.contains("filter")));
     assert!(calls.iter().any(|c| c.name.contains("reduce")));
-    
+
     // Verify we have all call types
     assert!(calls.iter().any(|c| c.kind == CallKind::Function));
     assert!(calls.iter().any(|c| c.kind == CallKind::Method));
@@ -239,11 +241,13 @@ function bar(a, b) {}
     assert!(calls.iter().any(|c| c.name.contains("log")));
     assert!(calls.iter().any(|c| c.name == "foo"));
     assert!(calls.iter().any(|c| c.name == "bar"));
-    assert!(calls.iter().any(|c| c.name == "MyClass" && c.kind == CallKind::Constructor));
+    assert!(calls
+        .iter()
+        .any(|c| c.name == "MyClass" && c.kind == CallKind::Constructor));
     assert!(calls.iter().any(|c| c.name.contains("forEach")));
     assert!(calls.iter().any(|c| c.name == "fetch"));
     assert!(calls.iter().any(|c| c.name.contains("then")));
-    
+
     // Verify we have all call types
     assert!(calls.iter().any(|c| c.kind == CallKind::Function));
     assert!(calls.iter().any(|c| c.kind == CallKind::Method));
@@ -306,7 +310,7 @@ func bar(a int, b int) {}
     assert!(calls.iter().any(|c| c.name.contains("Contains")));
     assert!(calls.iter().any(|c| c.name.contains("Method")));
     assert!(calls.iter().any(|c| c.name == "len"));
-    
+
     // Verify we have both function and method calls
     assert!(calls.iter().any(|c| c.kind == CallKind::Function));
     assert!(calls.iter().any(|c| c.kind == CallKind::Method));
@@ -330,7 +334,7 @@ fn bar(_a: i32, _b: i32) {}
     for call in &calls {
         assert!(call.range.start < call.range.end);
         assert!(call.range.end <= code.len());
-        
+
         // Extract the text from the range and verify it's not empty
         let call_text = &code[call.range.start..call.range.end];
         assert!(!call_text.is_empty());
@@ -357,7 +361,7 @@ fn main() {
 
     let tree = parse(code, doctown_common::Language::Rust).unwrap();
     let calls = extract_calls(&tree, code, doctown_common::Language::Rust);
-    
+
     // Should not find any calls (all are in comments)
     assert_eq!(calls.len(), 0);
 }

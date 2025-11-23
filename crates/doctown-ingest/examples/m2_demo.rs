@@ -8,7 +8,9 @@
 //! 5. Resolve calls to determine if they're local or external
 
 use doctown_common::Language;
-use doctown_ingest::{extract_calls, extract_imports, extract_symbols, resolve_calls, Parser, SymbolTable};
+use doctown_ingest::{
+    extract_calls, extract_imports, extract_symbols, resolve_calls, Parser, SymbolTable,
+};
 
 fn main() {
     println!("=== M2.1 Call Graph Extraction Demo ===\n");
@@ -42,14 +44,20 @@ fn read_file(path: &str) -> std::io::Result<String> {
     let symbols = extract_symbols(&tree, rust_code, Language::Rust);
     println!("📦 Extracted {} symbols:", symbols.len());
     for symbol in &symbols {
-        println!("  - {} {:?} at {:?}", symbol.kind, symbol.name, symbol.range);
+        println!(
+            "  - {} {:?} at {:?}",
+            symbol.kind, symbol.name, symbol.range
+        );
     }
 
     // 2. Extract imports
     let imports = extract_imports(&tree, rust_code, Language::Rust);
     println!("\n📥 Extracted {} imports:", imports.len());
     for import in &imports {
-        println!("  - {} (wildcard: {})", import.module_path, import.is_wildcard);
+        println!(
+            "  - {} (wildcard: {})",
+            import.module_path, import.is_wildcard
+        );
         if let Some(ref items) = import.imported_items {
             println!("    Items: {:?}", items);
         }
@@ -72,7 +80,11 @@ fn read_file(path: &str) -> std::io::Result<String> {
     resolve_calls(&mut calls, &symbol_table);
     println!("\n✅ Call resolution results:");
     for call in &calls {
-        let status = if call.is_resolved { "LOCAL" } else { "EXTERNAL" };
+        let status = if call.is_resolved {
+            "LOCAL"
+        } else {
+            "EXTERNAL"
+        };
         println!("  - {} → {} ({:?})", call.name, status, call.kind);
     }
 

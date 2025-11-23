@@ -57,7 +57,7 @@ impl EmbeddingClient {
             .timeout(std::time::Duration::from_secs(120)) // 2 minutes
             .build()
             .unwrap_or_else(|_| reqwest::Client::new());
-        
+
         Self {
             base_url: base_url.into(),
             client,
@@ -130,7 +130,9 @@ impl EmbeddingClient {
             .vectors
             .into_iter()
             .filter_map(|cv| {
-                ChunkId::new(cv.chunk_id).ok().map(|chunk_id| (chunk_id, cv.vector))
+                ChunkId::new(cv.chunk_id)
+                    .ok()
+                    .map(|chunk_id| (chunk_id, cv.vector))
             })
             .collect();
 

@@ -150,8 +150,7 @@ fn create_symbol_chunks(
 
     // If small enough, create a single chunk
     if content_size <= config.max_chunk_size {
-        let chunk =
-            Chunk::new(file_path, language, symbol.range, content).with_symbol(symbol);
+        let chunk = Chunk::new(file_path, language, symbol.range, content).with_symbol(symbol);
         return vec![chunk];
     }
 

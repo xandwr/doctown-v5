@@ -1,9 +1,9 @@
 use actix_cors::Cors;
 use actix_web::{web, App, HttpResponse, HttpServer, Responder};
-use serde::{Deserialize, Serialize};
-use tokio::sync::mpsc;
 use async_stream::stream;
+use serde::{Deserialize, Serialize};
 use tokio::signal;
+use tokio::sync::mpsc;
 use tokio_util::sync::CancellationToken;
 
 use crate::github::GitHubUrl;
@@ -100,13 +100,18 @@ impl IngestRequest {
 }
 
 /// Core handler logic for ingest requests
-async fn handle_ingest_request(repo_url: String, git_ref: String, job_id_str: String) -> HttpResponse {
+async fn handle_ingest_request(
+    repo_url: String,
+    git_ref: String,
+    job_id_str: String,
+) -> HttpResponse {
     // Parse job_id and github_url
     let job_id = match JobId::new(&job_id_str) {
         Ok(id) => id,
         Err(e) => {
-            return HttpResponse::BadRequest()
-                .json(ErrorResponse { error: format!("Invalid job_id: {}", e) });
+            return HttpResponse::BadRequest().json(ErrorResponse {
+                error: format!("Invalid job_id: {}", e),
+            });
         }
     };
 
@@ -119,8 +124,9 @@ async fn handle_ingest_request(repo_url: String, git_ref: String, job_id_str: St
             url
         }
         Err(e) => {
-            return HttpResponse::BadRequest()
-                .json(ErrorResponse { error: format!("Invalid repo_url: {}", e) });
+            return HttpResponse::BadRequest().json(ErrorResponse {
+                error: format!("Invalid repo_url: {}", e),
+            });
         }
     };
 
@@ -153,7 +159,7 @@ async fn handle_ingest_request(repo_url: String, git_ref: String, job_id_str: St
                             match serde_json::to_string(&envelope) {
                                 Ok(json) => {
                                     yield Ok(web::Bytes::from(format!("data: {}\n\n", json)));
-                                    
+
                                     // Check if this is a terminal event
                                     if envelope.event_type.ends_with(".completed.v1") {
                                         break;
@@ -182,27 +188,36 @@ async fn handle_ingest_request(repo_url: String, git_ref: String, job_id_str: St
 }
 
 /// POST /ingest endpoint handler
-/// 
+///
 /// Validates the request, runs the ingest pipeline, and streams events via SSE.
 async fn ingest_post(req: web::Json<IngestRequest>) -> impl Responder {
     // Validate request
     if let Err(e) = req.validate() {
-        return HttpResponse::BadRequest()
-            .json(ErrorResponse { error: e });
+        return HttpResponse::BadRequest().json(ErrorResponse { error: e });
     }
 
-    handle_ingest_request(req.repo_url.clone(), req.git_ref.clone(), req.job_id.clone()).await
+    handle_ingest_request(
+        req.repo_url.clone(),
+        req.git_ref.clone(),
+        req.job_id.clone(),
+    )
+    .await
 }
 
 /// GET /ingest endpoint handler
-/// 
+///
 /// Accepts query parameters, runs the ingest pipeline, and streams events via SSE.
 async fn ingest_get(query: web::Query<IngestQuery>) -> impl Responder {
-    handle_ingest_request(query.repo_url.clone(), query.git_ref.clone(), query.job_id.clone()).await
+    handle_ingest_request(
+        query.repo_url.clone(),
+        query.git_ref.clone(),
+        query.job_id.clone(),
+    )
+    .await
 }
 
 /// Health check endpoint handler
-/// 
+///
 /// GET /health returns {"status": "ok", "version": "..."}
 async fn health() -> impl Responder {
     HttpResponse::Ok().json(serde_json::json!({
@@ -217,7 +232,7 @@ async fn health() -> impl Responder {
 /// and shutdown gracefully when received.
 pub async fn start_server(config: ServerConfig) -> std::io::Result<()> {
     let bind_addr = format!("{}:{}", config.host, config.port);
-    
+
     println!("Starting Doctown Ingest API server on {}", bind_addr);
     println!("Configured CORS origins: {:?}", config.cors_origins);
     println!("Max request body size: {} bytes", config.max_body_size);
@@ -241,7 +256,7 @@ pub async fn start_server(config: ServerConfig) -> std::io::Result<()> {
             for origin in &config.cors_origins {
                 cors = cors.allowed_origin(origin);
             }
-            
+
             cors
         };
 
@@ -252,8 +267,8 @@ pub async fn start_server(config: ServerConfig) -> std::io::Result<()> {
             .route("/ingest", web::get().to(ingest_get))
             .route("/ingest", web::post().to(ingest_post))
     })
-        .bind(&bind_addr)?
-        .run();
+    .bind(&bind_addr)?
+    .run();
 
     let server_handle = server.handle();
     let server_task = tokio::spawn(server);
@@ -292,10 +307,9 @@ pub async fn start_server(config: ServerConfig) -> std::io::Result<()> {
 #[cfg(unix)]
 async fn shutdown_signal() {
     use tokio::signal::unix::{signal, SignalKind};
-    
-    let mut sigterm = signal(SignalKind::terminate())
-        .expect("Failed to install SIGTERM handler");
-    
+
+    let mut sigterm = signal(SignalKind::terminate()).expect("Failed to install SIGTERM handler");
+
     sigterm.recv().await;
 }
 

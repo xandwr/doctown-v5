@@ -68,11 +68,11 @@ pub async fn run_pipeline(
             let chunks_embedded = if !collected_chunks.is_empty() {
                 let embedding_url = env::var("EMBEDDING_URL").unwrap_or_else(|_| "http://localhost:8000".to_string());
                 let embedding_client = EmbeddingClient::new(embedding_url);
-                
+
                 // Split into smaller batches to avoid timeouts
                 const BATCH_SIZE: usize = 256;
                 let mut total_embedded = 0;
-                
+
                 for (batch_num, chunk_batch) in collected_chunks.chunks(BATCH_SIZE).enumerate() {
                     match embedding_client.embed_batch(
                         format!("job_{}_batch_{}", context.job_id, batch_num),
@@ -85,7 +85,7 @@ pub async fn run_pipeline(
                             } else {
                                 0
                             };
-                            eprintln!("Embedded batch {}: {} chunks in {}ms (~{} chunks/sec)", 
+                            eprintln!("Embedded batch {}: {} chunks in {}ms (~{} chunks/sec)",
                                 batch_num + 1, vectors.len(), duration_ms, chunks_per_sec);
                         }
                         Err(e) => {
@@ -94,7 +94,7 @@ pub async fn run_pipeline(
                         }
                     }
                 }
-                
+
                 total_embedded
             } else {
                 0
@@ -115,13 +115,13 @@ pub async fn run_pipeline(
                 chunks_created,
                 duration_ms,
             );
-            
+
             let payload = if chunks_embedded > 0 {
                 payload.with_embeddings(chunks_embedded)
             } else {
                 payload
             };
-            
+
             sender
                 .send(
                     Envelope::new(

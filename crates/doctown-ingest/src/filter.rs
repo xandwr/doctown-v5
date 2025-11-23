@@ -22,13 +22,13 @@ pub static DEFAULT_IGNORE_PATTERNS: &[&str] = &[
     "vendor",
     "bower_components",
     // Build outputs
-    "target",       // Rust
+    "target", // Rust
     "dist",
     "build",
     "out",
-    "_build",       // Elixir
-    ".next",        // Next.js
-    ".nuxt",        // Nuxt.js
+    "_build", // Elixir
+    ".next",  // Next.js
+    ".nuxt",  // Nuxt.js
     // Python
     "__pycache__",
     ".venv",
@@ -412,7 +412,10 @@ mod tests {
     fn test_size_limit_under() {
         let filter = FileFilter::new();
         let path = PathBuf::from("src/main.rs");
-        assert_eq!(filter.should_process_path(&path, 1000), FilterResult::Accept);
+        assert_eq!(
+            filter.should_process_path(&path, 1000),
+            FilterResult::Accept
+        );
     }
 
     #[test]
@@ -420,7 +423,10 @@ mod tests {
         let filter = FileFilter::new();
         let path = PathBuf::from("src/main.rs");
         let result = filter.should_process_path(&path, 2 * 1024 * 1024);
-        assert!(matches!(result, FilterResult::Skip(SkipReason::TooLarge(_))));
+        assert!(matches!(
+            result,
+            FilterResult::Skip(SkipReason::TooLarge(_))
+        ));
     }
 
     #[test]
@@ -428,7 +434,10 @@ mod tests {
         let filter = FileFilter::new().with_max_file_size(500);
         let path = PathBuf::from("src/main.rs");
         let result = filter.should_process_path(&path, 600);
-        assert!(matches!(result, FilterResult::Skip(SkipReason::TooLarge(_))));
+        assert!(matches!(
+            result,
+            FilterResult::Skip(SkipReason::TooLarge(_))
+        ));
     }
 
     // ==========================================================================

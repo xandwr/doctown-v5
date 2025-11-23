@@ -45,7 +45,13 @@ impl Parser {
 
     /// Returns a list of all supported languages.
     pub fn supported_languages() -> &'static [Language] {
-        &[Language::Rust, Language::Python, Language::TypeScript, Language::JavaScript, Language::Go]
+        &[
+            Language::Rust,
+            Language::Python,
+            Language::TypeScript,
+            Language::JavaScript,
+            Language::Go,
+        ]
     }
 
     /// Parses source code using the appropriate grammar for the given language.

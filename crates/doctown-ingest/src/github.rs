@@ -256,11 +256,7 @@ impl GitHubClient {
     /// Resolves a branch/tag name to a commit SHA.
     ///
     /// If the ref is already a 40-character hex string (SHA), returns it as-is.
-    pub async fn resolve_ref(
-        &self,
-        url: &GitHubUrl,
-        git_ref: &str,
-    ) -> Result<String, DocError> {
+    pub async fn resolve_ref(&self, url: &GitHubUrl, git_ref: &str) -> Result<String, DocError> {
         // If it looks like a SHA already, return it
         if git_ref.len() == 40 && git_ref.chars().all(|c| c.is_ascii_hexdigit()) {
             return Ok(git_ref.to_string());

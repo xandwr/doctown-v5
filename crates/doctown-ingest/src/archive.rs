@@ -1,5 +1,7 @@
 //! Archive extraction.
-use crate::filter::{normalize_archive_path, FileFilter, FilterResult, SkipReason as FilterSkipReason};
+use crate::filter::{
+    normalize_archive_path, FileFilter, FilterResult, SkipReason as FilterSkipReason,
+};
 use crate::language::detect_language;
 use crate::parsing::parse;
 use crate::pipeline::EventSender;
@@ -70,8 +72,8 @@ pub async fn process_extracted_files(
             let raw_relative_path = path.strip_prefix(repo_path).unwrap_or(path);
 
             // Normalize the path (remove "repo-branch/" prefix from ZIP archives)
-            let relative_path = normalize_archive_path(raw_relative_path)
-                .unwrap_or(raw_relative_path);
+            let relative_path =
+                normalize_archive_path(raw_relative_path).unwrap_or(raw_relative_path);
 
             // Get file metadata for size check
             let file_size = match entry.metadata() {
@@ -83,17 +85,14 @@ pub async fn process_extracted_files(
             match filter.should_process_path(relative_path, file_size) {
                 FilterResult::Skip(reason) => {
                     sender
-                        .send(
-                            Envelope::new(
-                                "ingest.file_skipped.v1",
-                                context.clone(),
-                                serde_json::to_value(IngestFileSkippedPayload::new(
-                                    relative_path.to_string_lossy(),
-                                    filter_reason_to_event_reason(&reason),
-                                ))?,
-                            )
-                            ,
-                        )
+                        .send(Envelope::new(
+                            "ingest.file_skipped.v1",
+                            context.clone(),
+                            serde_json::to_value(IngestFileSkippedPayload::new(
+                                relative_path.to_string_lossy(),
+                                filter_reason_to_event_reason(&reason),
+                            ))?,
+                        ))
                         .await
                         .map_err(|e| DocError::Internal(format!("Failed to send event: {}", e)))?;
                     files_skipped += 1;
@@ -107,17 +106,14 @@ pub async fn process_extracted_files(
                 Ok(bytes) => bytes,
                 Err(_) => {
                     sender
-                        .send(
-                            Envelope::new(
-                                "ingest.file_skipped.v1",
-                                context.clone(),
-                                serde_json::to_value(IngestFileSkippedPayload::new(
-                                    relative_path.to_string_lossy(),
-                                    SkipReason::Binary,
-                                ))?,
-                            )
-                            ,
-                        )
+                        .send(Envelope::new(
+                            "ingest.file_skipped.v1",
+                            context.clone(),
+                            serde_json::to_value(IngestFileSkippedPayload::new(
+                                relative_path.to_string_lossy(),
+                                SkipReason::Binary,
+                            ))?,
+                        ))
                         .await
                         .map_err(|e| DocError::Internal(format!("Failed to send event: {}", e)))?;
                     files_skipped += 1;
@@ -129,17 +125,14 @@ pub async fn process_extracted_files(
             match FileFilter::should_process_content(&content_bytes) {
                 FilterResult::Skip(reason) => {
                     sender
-                        .send(
-                            Envelope::new(
-                                "ingest.file_skipped.v1",
-                                context.clone(),
-                                serde_json::to_value(IngestFileSkippedPayload::new(
-                                    relative_path.to_string_lossy(),
-                                    filter_reason_to_event_reason(&reason),
-                                ))?,
-                            )
-                            ,
-                        )
+                        .send(Envelope::new(
+                            "ingest.file_skipped.v1",
+                            context.clone(),
+                            serde_json::to_value(IngestFileSkippedPayload::new(
+                                relative_path.to_string_lossy(),
+                                filter_reason_to_event_reason(&reason),
+                            ))?,
+                        ))
                         .await
                         .map_err(|e| DocError::Internal(format!("Failed to send event: {}", e)))?;
                     files_skipped += 1;
@@ -153,17 +146,14 @@ pub async fn process_extracted_files(
                 Ok(s) => s,
                 Err(_) => {
                     sender
-                        .send(
-                            Envelope::new(
-                                "ingest.file_skipped.v1",
-                                context.clone(),
-                                serde_json::to_value(IngestFileSkippedPayload::new(
-                                    relative_path.to_string_lossy(),
-                                    SkipReason::Binary,
-                                ))?,
-                            )
-                            ,
-                        )
+                        .send(Envelope::new(
+                            "ingest.file_skipped.v1",
+                            context.clone(),
+                            serde_json::to_value(IngestFileSkippedPayload::new(
+                                relative_path.to_string_lossy(),
+                                SkipReason::Binary,
+                            ))?,
+                        ))
                         .await
                         .map_err(|e| DocError::Internal(format!("Failed to send event: {}", e)))?;
                     files_skipped += 1;
@@ -173,18 +163,15 @@ pub async fn process_extracted_files(
 
             if let Some(language) = detect_language(relative_path, Some(&content)) {
                 sender
-                    .send(
-                        Envelope::new(
-                            "ingest.file_detected.v1",
-                            context.clone(),
-                            serde_json::to_value(IngestFileDetectedPayload::new(
-                                relative_path.to_string_lossy(),
-                                language,
-                                content.len(),
-                            ))?,
-                        )
-                        ,
-                    )
+                    .send(Envelope::new(
+                        "ingest.file_detected.v1",
+                        context.clone(),
+                        serde_json::to_value(IngestFileDetectedPayload::new(
+                            relative_path.to_string_lossy(),
+                            language,
+                            content.len(),
+                        ))?,
+                    ))
                     .await
                     .map_err(|e| DocError::Internal(format!("Failed to send event: {}", e)))?;
 
@@ -192,11 +179,12 @@ pub async fn process_extracted_files(
                     let symbols = extract_symbols(&tree, &content, language);
                     for symbol in symbols {
                         let chunk_id = ChunkId::generate();
-                        let chunk_content = content[symbol.range.start..symbol.range.end].to_string();
-                        
+                        let chunk_content =
+                            content[symbol.range.start..symbol.range.end].to_string();
+
                         // Collect chunk for embedding
                         collected_chunks.push((chunk_id.clone(), chunk_content.clone()));
-                        
+
                         let payload = IngestChunkCreatedPayload::new(
                             chunk_id,
                             relative_path.to_string_lossy(),
@@ -205,16 +193,13 @@ pub async fn process_extracted_files(
                             &chunk_content,
                         )
                         .with_symbol(symbol.kind, symbol.name);
-                        
+
                         sender
-                            .send(
-                                Envelope::new(
-                                    "ingest.chunk_created.v1",
-                                    context.clone(),
-                                    serde_json::to_value(payload)?,
-                                )
-                                ,
-                            )
+                            .send(Envelope::new(
+                                "ingest.chunk_created.v1",
+                                context.clone(),
+                                serde_json::to_value(payload)?,
+                            ))
                             .await
                             .map_err(|e| {
                                 DocError::Internal(format!("Failed to send event: {}", e))
@@ -225,44 +210,41 @@ pub async fn process_extracted_files(
                 } else {
                     // Failed to parse, emit skipped event
                     sender
-                        .send(
-                            Envelope::new(
-                                "ingest.file_skipped.v1",
-                                context.clone(),
-                                serde_json::to_value(IngestFileSkippedPayload::new(
-                                    relative_path.to_string_lossy(),
-                                    SkipReason::ParseError,
-                                ))?,
-                            )
-                            ,
-                        )
+                        .send(Envelope::new(
+                            "ingest.file_skipped.v1",
+                            context.clone(),
+                            serde_json::to_value(IngestFileSkippedPayload::new(
+                                relative_path.to_string_lossy(),
+                                SkipReason::ParseError,
+                            ))?,
+                        ))
                         .await
-                        .map_err(|e| {
-                            DocError::Internal(format!("Failed to send event: {}", e))
-                        })?;
+                        .map_err(|e| DocError::Internal(format!("Failed to send event: {}", e)))?;
                     files_skipped += 1;
                 }
             } else {
                 // Unsupported language, emit skipped event
                 sender
-                    .send(
-                        Envelope::new(
-                            "ingest.file_skipped.v1",
-                            context.clone(),
-                            serde_json::to_value(IngestFileSkippedPayload::new(
-                                relative_path.to_string_lossy(),
-                                SkipReason::UnsupportedLanguage,
-                            ))?,
-                        )
-                        ,
-                    )
+                    .send(Envelope::new(
+                        "ingest.file_skipped.v1",
+                        context.clone(),
+                        serde_json::to_value(IngestFileSkippedPayload::new(
+                            relative_path.to_string_lossy(),
+                            SkipReason::UnsupportedLanguage,
+                        ))?,
+                    ))
                     .await
                     .map_err(|e| DocError::Internal(format!("Failed to send event: {}", e)))?;
                 files_skipped += 1;
             }
         }
     }
-    Ok((files_processed, files_skipped, chunks_created, collected_chunks))
+    Ok((
+        files_processed,
+        files_skipped,
+        chunks_created,
+        collected_chunks,
+    ))
 }
 
 #[cfg(test)]

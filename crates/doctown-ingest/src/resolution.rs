@@ -37,7 +37,8 @@ impl SymbolTable {
     /// Add a symbol to the table.
     pub fn add_symbol(&mut self, name: String, symbol_id: SymbolId, file_path: String) {
         self.symbols.insert(name.clone(), symbol_id.clone());
-        self.symbol_info.insert(symbol_id, SymbolInfo { name, file_path });
+        self.symbol_info
+            .insert(symbol_id, SymbolInfo { name, file_path });
     }
 
     /// Add multiple symbols from a list.

@@ -16,7 +16,10 @@ use zip::write::FileOptions;
 use zip::ZipWriter;
 
 /// Helper to create a ZIP with multiple Rust files
-fn create_multi_file_zip(zip_path: &Path, num_files: usize) -> Result<(), Box<dyn std::error::Error>> {
+fn create_multi_file_zip(
+    zip_path: &Path,
+    num_files: usize,
+) -> Result<(), Box<dyn std::error::Error>> {
     let file = fs::File::create(zip_path)?;
     let mut zip = ZipWriter::new(file);
     let options = FileOptions::<()>::default();
@@ -24,7 +27,7 @@ fn create_multi_file_zip(zip_path: &Path, num_files: usize) -> Result<(), Box<dy
     for i in 0..num_files {
         let filename = format!("test-repo-main/src/file{}.rs", i);
         zip.start_file(&filename, options)?;
-        
+
         // Write some Rust code with multiple functions
         writeln!(zip, "// File {}", i)?;
         writeln!(zip, "pub fn function_{}a() -> i32 {{", i)?;
@@ -87,7 +90,7 @@ async fn test_chunks_stream_incrementally() {
     let extract_dir_clone = extract_dir.clone();
     let _process_task = tokio::spawn(async move {
         use doctown_ingest::archive::process_extracted_files;
-        
+
         // Send started event
         let _ = tx_clone
             .send(Envelope::new(
@@ -102,7 +105,8 @@ async fn test_chunks_stream_incrementally() {
             .await;
 
         // Process files
-        let _ = process_extracted_files(&extract_dir_clone, context.clone(), tx_clone.clone()).await;
+        let _ =
+            process_extracted_files(&extract_dir_clone, context.clone(), tx_clone.clone()).await;
 
         // Send completed event
         let _ = tx_clone
@@ -110,8 +114,10 @@ async fn test_chunks_stream_incrementally() {
                 Envelope::new(
                     "ingest.completed.v1",
                     context,
-                    serde_json::to_value(doctown_events::IngestCompletedPayload::success(5, 0, 10, 100))
-                        .unwrap(),
+                    serde_json::to_value(doctown_events::IngestCompletedPayload::success(
+                        5, 0, 10, 100,
+                    ))
+                    .unwrap(),
                 )
                 .with_status(doctown_events::Status::Success),
             )
@@ -127,7 +133,7 @@ async fn test_chunks_stream_incrementally() {
     // Collect events with timestamps
     while let Some(event) = rx.recv().await {
         let elapsed = start_time.elapsed();
-        
+
         if event.event_type == "ingest.chunk_created.v1" {
             chunk_times.push(elapsed);
             if first_chunk_time.is_none() {
@@ -135,7 +141,7 @@ async fn test_chunks_stream_incrementally() {
             }
             last_chunk_time = Some(elapsed);
         }
-        
+
         if event.event_type == "ingest.completed.v1" {
             break;
         }
@@ -207,7 +213,7 @@ async fn test_memory_bounded_processing() {
     let extract_dir_clone = extract_dir.clone();
     let process_task = tokio::spawn(async move {
         use doctown_ingest::archive::process_extracted_files;
-        
+
         let _ = tx_clone
             .send(Envelope::new(
                 "ingest.started.v1",
@@ -220,15 +226,18 @@ async fn test_memory_bounded_processing() {
             ))
             .await;
 
-        let _ = process_extracted_files(&extract_dir_clone, context.clone(), tx_clone.clone()).await;
+        let _ =
+            process_extracted_files(&extract_dir_clone, context.clone(), tx_clone.clone()).await;
 
         let _ = tx_clone
             .send(
                 Envelope::new(
                     "ingest.completed.v1",
                     context,
-                    serde_json::to_value(doctown_events::IngestCompletedPayload::success(10, 0, 20, 100))
-                        .unwrap(),
+                    serde_json::to_value(doctown_events::IngestCompletedPayload::success(
+                        10, 0, 20, 100,
+                    ))
+                    .unwrap(),
                 )
                 .with_status(doctown_events::Status::Success),
             )
@@ -239,10 +248,10 @@ async fn test_memory_bounded_processing() {
     let mut event_count = 0;
     while let Some(_event) = rx.recv().await {
         event_count += 1;
-        
+
         // Small delay to simulate slow consumer
         tokio::time::sleep(Duration::from_micros(100)).await;
-        
+
         if event_count > 30 {
             break; // Stop after collecting enough events
         }
@@ -295,7 +304,7 @@ async fn test_event_ordering() {
     let extract_dir_clone = extract_dir.clone();
     let _process_task = tokio::spawn(async move {
         use doctown_ingest::archive::process_extracted_files;
-        
+
         let _ = tx_clone
             .send(Envelope::new(
                 "ingest.started.v1",
@@ -308,15 +317,18 @@ async fn test_event_ordering() {
             ))
             .await;
 
-        let _ = process_extracted_files(&extract_dir_clone, context.clone(), tx_clone.clone()).await;
+        let _ =
+            process_extracted_files(&extract_dir_clone, context.clone(), tx_clone.clone()).await;
 
         let _ = tx_clone
             .send(
                 Envelope::new(
                     "ingest.completed.v1",
                     context,
-                    serde_json::to_value(doctown_events::IngestCompletedPayload::success(3, 0, 6, 100))
-                        .unwrap(),
+                    serde_json::to_value(doctown_events::IngestCompletedPayload::success(
+                        3, 0, 6, 100,
+                    ))
+                    .unwrap(),
                 )
                 .with_status(doctown_events::Status::Success),
             )

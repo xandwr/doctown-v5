@@ -6,6 +6,7 @@
 //! - Extracting symbols and creating chunks
 //! - Streaming events via SSE
 
+pub mod api;
 pub mod archive;
 pub mod calls;
 pub mod chunk;
@@ -19,7 +20,6 @@ pub mod pipeline;
 pub mod resolution;
 pub mod symbol;
 pub mod traversal;
-pub mod api;
 
 pub use archive::{extract_zip, process_extracted_files};
 pub use calls::extract_calls;

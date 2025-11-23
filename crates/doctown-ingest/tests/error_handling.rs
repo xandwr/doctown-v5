@@ -18,9 +18,7 @@ use zip::write::FileOptions;
 use zip::ZipWriter;
 
 /// Helper to create a ZIP with files that will cause parse errors
-fn create_zip_with_problematic_files(
-    zip_path: &Path,
-) -> Result<(), Box<dyn std::error::Error>> {
+fn create_zip_with_problematic_files(zip_path: &Path) -> Result<(), Box<dyn std::error::Error>> {
     let file = fs::File::create(zip_path)?;
     let mut zip = ZipWriter::new(file);
     let options = FileOptions::<()>::default();
@@ -96,7 +94,8 @@ async fn test_parse_errors_skip_file_and_continue() {
             process_extracted_files(&extract_dir_clone, context.clone(), tx_clone.clone()).await;
 
         // Even if there were errors, we should get a result
-        let (files_processed, files_skipped, chunks_created) = result.unwrap_or((0, 0, 0));
+        let (files_processed, files_skipped, chunks_created, _) =
+            result.unwrap_or((0, 0, 0, Vec::new()));
 
         // Send completion event
         let _ = tx_clone
@@ -179,7 +178,8 @@ async fn test_completed_event_always_emitted() {
             process_extracted_files(&extract_dir_clone, context.clone(), tx_clone.clone()).await;
 
         // Always emit completed, even if nothing was processed
-        let (files_processed, files_skipped, chunks_created) = result.unwrap_or((0, 0, 0));
+        let (files_processed, files_skipped, chunks_created, _) =
+            result.unwrap_or((0, 0, 0, Vec::new()));
 
         let _ = tx_clone
             .send(
@@ -340,7 +340,8 @@ async fn test_ignore_patterns_work() {
     writeln!(zip, "// library code").unwrap();
 
     // Lock file
-    zip.start_file("test-repo-main/Cargo.lock", options).unwrap();
+    zip.start_file("test-repo-main/Cargo.lock", options)
+        .unwrap();
     writeln!(zip, "# lock file").unwrap();
 
     // Hidden file

@@ -139,9 +139,9 @@ async fn test_event_sequence_is_valid() {
             "ingest.completed.v1",
             context.clone(),
             serde_json::to_value(doctown_events::IngestCompletedPayload::success(
-                1, // files_processed
-                1, // files_skipped
-                1, // chunks_created
+                1,   // files_processed
+                1,   // files_skipped
+                1,   // chunks_created
                 100, // duration_ms
             ))
             .unwrap(),
@@ -164,7 +164,10 @@ async fn test_event_sequence_is_valid() {
 
     // Verify first event is started
     assert_eq!(events[0].event_type, "ingest.started.v1");
-    assert!(events[0].status.is_none(), "Started event should not have status");
+    assert!(
+        events[0].status.is_none(),
+        "Started event should not have status"
+    );
 
     // Verify middle events are file_detected, file_skipped, or chunk_created
     assert_eq!(events[1].event_type, "ingest.file_detected.v1");
@@ -204,10 +207,8 @@ async fn test_event_payloads_match_spec() {
         .with_git_ref("main".to_string());
 
     // Test IngestStartedPayload
-    let started_payload = doctown_events::IngestStartedPayload::new(
-        github_url.canonical_url(),
-        "main".to_string(),
-    );
+    let started_payload =
+        doctown_events::IngestStartedPayload::new(github_url.canonical_url(), "main".to_string());
     let started_event = Envelope::new(
         "ingest.started.v1",
         context.clone(),
@@ -216,11 +217,8 @@ async fn test_event_payloads_match_spec() {
     tx.send(started_event).await.unwrap();
 
     // Test IngestFileDetectedPayload
-    let file_detected_payload = doctown_events::IngestFileDetectedPayload::new(
-        "src/lib.rs",
-        Language::Rust,
-        1024,
-    );
+    let file_detected_payload =
+        doctown_events::IngestFileDetectedPayload::new("src/lib.rs", Language::Rust, 1024);
     let file_detected_event = Envelope::new(
         "ingest.file_detected.v1",
         context.clone(),
@@ -258,8 +256,7 @@ async fn test_event_payloads_match_spec() {
     tx.send(chunk_event).await.unwrap();
 
     // Test IngestCompletedPayload (success)
-    let completed_payload =
-        doctown_events::IngestCompletedPayload::success(5, 2, 10, 1500);
+    let completed_payload = doctown_events::IngestCompletedPayload::success(5, 2, 10, 1500);
     let completed_event = Envelope::new(
         "ingest.completed.v1",
         context.clone(),
@@ -389,10 +386,7 @@ async fn test_failed_completion_event() {
     let payload: Value = events[1].payload.clone();
     assert!(payload.get("error").is_some());
     assert!(payload.get("duration_ms").is_some());
-    assert_eq!(
-        payload["error"],
-        "Network error: connection timeout"
-    );
+    assert_eq!(payload["error"], "Network error: connection timeout");
     assert_eq!(payload["duration_ms"], 500);
 }
 
@@ -456,7 +450,8 @@ async fn test_events_have_proper_context() {
         let timestamp_str = event.timestamp.to_rfc3339();
         // Basic check that timestamp looks like ISO 8601
         assert!(
-            timestamp_str.contains('T') && (timestamp_str.contains('Z') || timestamp_str.contains("+00:00")),
+            timestamp_str.contains('T')
+                && (timestamp_str.contains('Z') || timestamp_str.contains("+00:00")),
             "Timestamp should be in ISO 8601 format with UTC timezone, got: {}",
             timestamp_str
         );
