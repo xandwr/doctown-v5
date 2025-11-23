@@ -1,0 +1,21 @@
+[package]
+name = "doctown-ingest"
+description = "Ingest worker for Doctown - fetches repos, parses code, extracts symbols"
+version.workspace = true
+edition.workspace = true
+
+[dependencies]
+doctown-common = { path = "../doctown-common" }
+doctown-events = { path = "../doctown-events" }
+tokio = { workspace = true }
+actix-web = { workspace = true }
+actix-cors = { workspace = true }
+reqwest = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+url = { workspace = true }
+async-stream = { workspace = true }
+futures-util = { workspace = true }
+
+[dev-dependencies]
+pretty_assertions = { workspace = true }

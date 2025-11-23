@@ -1,3 +1,44 @@
-*.env
-!env.example
-**/target
+# Environment
+.env
+!.env.example
+
+# Rust
+**/target/
+Cargo.lock
+*.rs.bk
+
+# Node / Website
+node_modules/
+.svelte-kit/
+build/
+dist/
+.vercel/
+
+# Python workers
+__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+venv/
+*.egg-info/
+.pytest_cache/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+logs/
+
+# Build artifacts
+*.zip
+*.tar.gz
+*.docpack

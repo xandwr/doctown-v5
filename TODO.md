@@ -34,79 +34,79 @@
 ## M1.0: Project Scaffolding
 
 ### M1.0.1 Repository Setup
-- [ ] Initialize Cargo workspace at root
-- [ ] Create `Cargo.toml` with workspace members
-- [ ] Create `.gitignore` for Rust/Node artifacts
-- [ ] Create `rust-toolchain.toml` (pin stable version)
-- [ ] Set up `clippy.toml` with strict lints
-- [ ] Set up `rustfmt.toml` for consistent formatting
+- [x] Initialize Cargo workspace at root
+- [x] Create `Cargo.toml` with workspace members
+- [x] Create `.gitignore` for Rust/Node artifacts
+- [x] Create `rust-toolchain.toml` (pin stable version)
+- [x] Set up `clippy.toml` with strict lints
+- [x] Set up `rustfmt.toml` for consistent formatting
 
 ### M1.0.2 Workspace Structure
-- [ ] Create `crates/` directory for all Rust crates
-- [ ] Create `crates/doctown-common/` (shared types, errors, utils)
-- [ ] Create `crates/doctown-events/` (event envelope, serialization)
-- [ ] Create `crates/doctown-ingest/` (ingest worker)
-- [ ] Create `website/` directory for SvelteKit app
+- [x] Create `crates/` directory for all Rust crates
+- [x] Create `crates/doctown-common/` (shared types, errors, utils)
+- [x] Create `crates/doctown-events/` (event envelope, serialization)
+- [x] Create `crates/doctown-ingest/` (ingest worker)
+- [x] Create `website/` directory for SvelteKit app
 
 ### M1.0.3 CI Foundation
-- [ ] Create `.github/workflows/rust.yml` for Rust CI
-- [ ] Add `cargo fmt --check` step
-- [ ] Add `cargo clippy -- -D warnings` step
-- [ ] Add `cargo test` step
-- [ ] Add `cargo build --release` step
+- [x] Create `.github/workflows/rust.yml` for Rust CI
+- [x] Add `cargo fmt --check` step
+- [x] Add `cargo clippy -- -D warnings` step
+- [x] Add `cargo test` step
+- [x] Add `cargo build --release` step
 
 ---
 
 ## M1.1: Core Types (`doctown-common`)
 
 ### M1.1.1 Identifier Types
-- [ ] Define `JobId` newtype with validation
-- [ ] Define `ChunkId` newtype with validation
-- [ ] Define `SymbolId` newtype with validation
-- [ ] Define `EventId` newtype with UUID generation
-- [ ] Define `TraceId` newtype
-- [ ] [T] Unit tests for all newtype validation
-- [ ] [T] Unit tests for serialization roundtrip (serde)
+- [x] Define `JobId` newtype with validation
+- [x] Define `ChunkId` newtype with validation
+- [x] Define `SymbolId` newtype with validation
+- [x] Define `EventId` newtype with UUID generation
+- [x] Define `TraceId` newtype
+- [x] [T] Unit tests for all newtype validation
+- [x] [T] Unit tests for serialization roundtrip (serde)
 
 ### M1.1.2 Domain Types
-- [ ] Define `ByteRange` struct (start, end)
-- [ ] Define `Language` enum (Rust, Python, TypeScript, Go, JavaScript)
-- [ ] Define `SymbolKind` enum (Function, Class, Module, Struct, Trait, Enum, Method, Const)
-- [ ] [T] Unit tests for Language from file extension
-- [ ] [T] Unit tests for SymbolKind display
+- [x] Define `ByteRange` struct (start, end)
+- [x] Define `Language` enum (Rust, Python, TypeScript, Go, JavaScript)
+- [x] Define `SymbolKind` enum (Function, Class, Module, Struct, Trait, Enum, Method, Const)
+- [x] [T] Unit tests for Language from file extension
+- [x] [T] Unit tests for SymbolKind display
 
 ### M1.1.3 Error Types
-- [ ] Define `DocError` enum with variants for M1 errors
-- [ ] Implement `std::error::Error` for `DocError`
-- [ ] Implement `From` conversions for io::Error, reqwest::Error
-- [ ] [T] Unit tests for error display formatting
+- [x] Define `DocError` enum with variants for M1 errors
+- [x] Implement `std::error::Error` for `DocError`
+- [x] Implement `From` conversions for io::Error, reqwest::Error
+- [x] [T] Unit tests for error display formatting
 
 ---
 
 ## M1.2: Event System (`doctown-events`)
 
 ### M1.2.1 Event Envelope
-- [ ] Define `Envelope` struct matching spec
-- [ ] Define `Context` struct (repo_url, git_ref, user_id)
-- [ ] Define `Meta` struct (producer_version, trace_id, idempotency_key, tags)
-- [ ] Implement `Envelope::new()` with auto-generated fields
-- [ ] Implement `Envelope::with_parent()` for causality chains
-- [ ] Implement timestamp generation (ISO 8601)
-- [ ] Implement sequence number tracking per job
-- [ ] [T] Unit tests for envelope creation
-- [ ] [T] Unit tests for JSON serialization matches spec exactly
+- [x] Define `Envelope` struct matching spec
+- [x] Define `Context` struct (repo_url, git_ref, user_id)
+- [x] Define `Meta` struct (producer_version, trace_id, idempotency_key, tags)
+- [x] Implement `Envelope::new()` with auto-generated fields
+- [x] Implement `Envelope::with_parent()` for causality chains
+- [x] Implement timestamp generation (ISO 8601)
+- [x] Implement sequence number tracking per job
+- [x] [T] Unit tests for envelope creation
+- [x] [T] Unit tests for JSON serialization matches spec exactly
 - [ ] [T] Snapshot test comparing output to spec example
 
 ### M1.2.2 Ingest Event Types (M1 only)
 - [ ] Define `EventType` enum (ingest events only for now)
-- [ ] Define `IngestStartedPayload` struct
-- [ ] Define `IngestFileDetectedPayload` struct
-- [ ] Define `IngestFileSkippedPayload` struct
-- [ ] Define `IngestChunkCreatedPayload` struct
-- [ ] Define `IngestCompletedPayload` struct
-- [ ] Define `Status` enum (Success, Failed)
-- [ ] Implement typed event constructors for each type
-- [ ] [T] Unit tests for each payload serialization
+- [x] Define `IngestStartedPayload` struct
+- [x] Define `IngestFileDetectedPayload` struct
+- [x] Define `IngestFileSkippedPayload` struct
+- [x] Define `IngestChunkCreatedPayload` struct
+- [x] Define `IngestCompletedPayload` struct
+- [x] Define `Status` enum (Success, Failed)
+- [x] Implement typed event constructors for each type
+- [x] [T] Unit tests for each payload serialization
 - [ ] [T] Snapshot tests comparing output to spec examples
 
 ### M1.2.3 Event Validation
@@ -121,21 +121,21 @@
 ## M1.3: Language Detection (`doctown-ingest`)
 
 ### M1.3.1 File Extension Mapping
-- [ ] Implement extension → Language mapping
-- [ ] Handle .rs → Rust
-- [ ] Handle .py → Python
-- [ ] Handle .ts, .tsx → TypeScript
-- [ ] Handle .js, .jsx → JavaScript
-- [ ] Handle .go → Go
-- [ ] Handle ambiguous extensions (.h → None, let tree-sitter decide)
-- [ ] [T] Unit tests for all supported extensions
-- [ ] [T] Unit tests for unknown extensions return None
+- [x] Implement extension → Language mapping
+- [x] Handle .rs → Rust
+- [x] Handle .py → Python
+- [x] Handle .ts, .tsx → TypeScript
+- [x] Handle .js, .jsx → JavaScript
+- [x] Handle .go → Go
+- [x] Handle ambiguous extensions (.h → None, let tree-sitter decide)
+- [x] [T] Unit tests for all supported extensions
+- [x] [T] Unit tests for unknown extensions return None
 
 ### M1.3.2 Shebang Detection
-- [ ] Parse first line for #! patterns
-- [ ] Detect python, python3 → Python
-- [ ] Detect node, deno → JavaScript/TypeScript
-- [ ] [T] Unit tests for shebang parsing
+- [x] Parse first line for #! patterns
+- [x] Detect python, python3 → Python
+- [x] Detect node, deno → JavaScript/TypeScript
+- [x] [T] Unit tests for shebang parsing
 
 ---
 
@@ -306,12 +306,12 @@
 ## M1.8: Repository Fetching (`doctown-ingest`)
 
 ### M1.8.1 GitHub URL Parsing
-- [ ] Parse GitHub URLs (https://github.com/user/repo)
-- [ ] Extract owner and repo name
-- [ ] Handle URLs with branch/tag/commit refs
-- [ ] Handle URLs with path (strip it)
-- [ ] [T] Unit tests for various URL formats
-- [ ] [T] Unit tests for invalid URLs rejected
+- [x] Parse GitHub URLs (https://github.com/user/repo)
+- [x] Extract owner and repo name
+- [x] Handle URLs with branch/tag/commit refs
+- [x] Handle URLs with path (strip it)
+- [x] [T] Unit tests for various URL formats
+- [x] [T] Unit tests for invalid URLs rejected
 
 ### M1.8.2 GitHub API Client
 - [ ] Implement basic GitHub API client

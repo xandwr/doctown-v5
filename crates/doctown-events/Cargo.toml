@@ -1,0 +1,15 @@
+[package]
+name = "doctown-events"
+description = "Event envelope and serialization for Doctown"
+version.workspace = true
+edition.workspace = true
+
+[dependencies]
+doctown-common = { path = "../doctown-common" }
+serde = { workspace = true }
+serde_json = { workspace = true }
+uuid = { workspace = true }
+chrono = { workspace = true }
+
+[dev-dependencies]
+pretty_assertions = { workspace = true }

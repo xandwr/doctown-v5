@@ -1,0 +1,19 @@
+# Clippy configuration for strict lints
+
+# Cognitive complexity threshold for functions
+cognitive-complexity-threshold = 25
+
+# Maximum number of lines in a function
+too-many-lines-threshold = 100
+
+# Maximum number of arguments for functions
+too-many-arguments-threshold = 7
+
+# Disallow print statements in production code
+disallowed-macros = [
+    { path = "std::print", reason = "Use tracing or proper logging instead" },
+    { path = "std::println", reason = "Use tracing or proper logging instead" },
+    { path = "std::eprint", reason = "Use tracing or proper logging instead" },
+    { path = "std::eprintln", reason = "Use tracing or proper logging instead" },
+    { path = "std::dbg", reason = "Remove debug statements before committing" },
+]
