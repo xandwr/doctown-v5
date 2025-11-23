@@ -159,16 +159,16 @@
 ## M1.5: Symbol Extraction - Rust (`doctown-ingest`)
 
 ### M1.5.1 Function Extraction
-- [ ] Extract `fn` definitions
-- [ ] Extract `async fn` definitions
-- [ ] Capture function name
-- [ ] Capture full signature (params + return type)
-- [ ] Capture byte range (start, end)
-- [ ] Capture visibility (pub, pub(crate), private)
-- [ ] [T] Unit test: extract simple function
-- [ ] [T] Unit test: extract async function
-- [ ] [T] Unit test: extract generic function
-- [ ] [T] Unit test: extract function with lifetime params
+- [x] Extract `fn` definitions
+- [x] Extract `async fn` definitions
+- [x] Capture function name
+- [x] Capture full signature (params + return type)
+- [x] Capture byte range (start, end)
+- [x] Capture visibility (pub, pub(crate), private)
+- [x] [T] Unit test: extract simple function
+- [x] [T] Unit test: extract async function
+- [x] [T] Unit test: extract generic function
+- [x] [T] Unit test: extract function with lifetime params
 
 ### M1.5.2 Struct Extraction
 - [ ] Extract `struct` definitions

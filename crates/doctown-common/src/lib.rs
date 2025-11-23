@@ -8,4 +8,4 @@ pub mod types;
 
 pub use error::DocError;
 pub use ids::{ChunkId, EventId, JobId, SymbolId, TraceId};
-pub use types::{ByteRange, Language, SymbolKind};
+pub use types::{ByteRange, Language, SymbolKind, Visibility};

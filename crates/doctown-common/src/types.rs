@@ -136,6 +136,50 @@ impl fmt::Display for SymbolKind {
     }
 }
 
+/// Visibility of a symbol in Rust.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize, Default)]
+#[serde(rename_all = "snake_case")]
+pub enum Visibility {
+    /// `pub` - visible everywhere
+    Public,
+    /// `pub(crate)` - visible within the crate
+    PublicCrate,
+    /// `pub(super)` - visible in parent module
+    PublicSuper,
+    /// `pub(self)` - visible in current module only
+    PublicSelf,
+    /// `pub(in path)` - visible in specified path
+    PublicIn,
+    /// No visibility modifier (private)
+    #[default]
+    Private,
+}
+
+impl Visibility {
+    /// Returns a human-readable short form.
+    pub fn short_name(&self) -> &'static str {
+        match self {
+            Visibility::Public => "pub",
+            Visibility::PublicCrate => "pub(crate)",
+            Visibility::PublicSuper => "pub(super)",
+            Visibility::PublicSelf => "pub(self)",
+            Visibility::PublicIn => "pub(in ..)",
+            Visibility::Private => "",
+        }
+    }
+
+    /// Returns true if the symbol is public in any form.
+    pub fn is_public(&self) -> bool {
+        !matches!(self, Visibility::Private)
+    }
+}
+
+impl fmt::Display for Visibility {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{}", self.short_name())
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
