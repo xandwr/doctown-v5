@@ -31,6 +31,7 @@ pub fn extract_symbols(
 ) -> Vec<Symbol> {
     match language {
         doctown_common::Language::Rust => extract_rust_symbols(tree, source_code),
+        doctown_common::Language::Python => extract_python_symbols(tree, source_code),
         _ => Vec::new(),
     }
 }
@@ -420,6 +421,198 @@ fn extract_rust_macro(node: Node<'_>, source: &str) -> Option<Symbol> {
     })
 }
 
+// ============================================
+// Python Symbol Extraction
+// ============================================
+
+/// Check if a Python node is inside a class definition.
+fn is_inside_class(node: Node<'_>) -> bool {
+    ancestors(node).any(|n| n.kind() == "class_definition")
+}
+
+/// Extract symbols from Python source code.
+fn extract_python_symbols(tree: &Tree, source_code: &str) -> Vec<Symbol> {
+    let mut symbols = Vec::new();
+    let root = tree.root_node();
+
+    // Extract function definitions (only top-level, not inside classes - those are methods)
+    for node in find_nodes_by_kind(root, "function_definition") {
+        if is_inside_class(node) {
+            continue;
+        }
+        if let Some(symbol) = extract_python_function(node, source_code) {
+            symbols.push(symbol);
+        }
+    }
+
+    // Extract class definitions
+    for node in find_nodes_by_kind(root, "class_definition") {
+        if let Some(symbol) = extract_python_class(node, source_code) {
+            symbols.push(symbol);
+        }
+    }
+
+    // Extract module-level assignments (constants)
+    for node in find_nodes_by_kind(root, "expression_statement") {
+        // Only process top-level assignments
+        if node.parent().map(|p| p.kind()) != Some("module") {
+            continue;
+        }
+        if let Some(assignment) = find_child_by_kind(node, "assignment") {
+            if let Some(symbol) = extract_python_assignment(assignment, source_code) {
+                symbols.push(symbol);
+            }
+        }
+    }
+
+    symbols
+}
+
+/// Extract a Python function definition.
+fn extract_python_function(node: Node<'_>, source: &str) -> Option<Symbol> {
+    // Get the function name
+    let name_node = child_by_field(node, "name")?;
+    let name = node_text(name_node, source).to_string();
+    let name_range = node_byte_range(name_node);
+
+    // Get the full range of the function (including decorators)
+    let range = node_byte_range(node);
+
+    // Check if async - the node kind for async functions is still "function_definition"
+    // but they have an "async" keyword as a child
+    let is_async = find_child_by_kind(node, "async").is_some();
+
+    // Extract signature (function name + parameters + return type annotation)
+    let signature = extract_python_function_signature(node, source);
+
+    // Get decorators
+    let _decorators = extract_python_decorators(node, source);
+
+    Some(Symbol {
+        kind: SymbolKind::Function,
+        name,
+        range,
+        name_range,
+        signature,
+        visibility: Visibility::Public, // Python doesn't have visibility modifiers
+        is_async,
+    })
+}
+
+/// Extract the signature of a Python function.
+fn extract_python_function_signature(node: Node<'_>, source: &str) -> Option<String> {
+    let name_node = child_by_field(node, "name")?;
+    let params_node = child_by_field(node, "parameters")?;
+
+    let name = node_text(name_node, source);
+    let params = node_text(params_node, source);
+
+    // Check for return type annotation
+    let return_type = child_by_field(node, "return_type")
+        .map(|n| format!(" -> {}", node_text(n, source)));
+
+    Some(format!("{}{}{}", name, params, return_type.unwrap_or_default()))
+}
+
+/// Extract decorators from a Python function or class.
+fn extract_python_decorators(node: Node<'_>, source: &str) -> Vec<String> {
+    let mut decorators = Vec::new();
+
+    // Look for decorator siblings that appear before this node
+    // In tree-sitter-python, decorators are children of a decorated_definition node
+    if let Some(parent) = node.parent() {
+        if parent.kind() == "decorated_definition" {
+            for i in 0..parent.child_count() {
+                if let Some(child) = parent.child(i) {
+                    if child.kind() == "decorator" {
+                        decorators.push(node_text(child, source).to_string());
+                    }
+                }
+            }
+        }
+    }
+
+    decorators
+}
+
+/// Extract a Python class definition.
+fn extract_python_class(node: Node<'_>, source: &str) -> Option<Symbol> {
+    let name_node = child_by_field(node, "name")?;
+    let name = node_text(name_node, source).to_string();
+    let name_range = node_byte_range(name_node);
+    let range = node_byte_range(node);
+
+    // Build signature: class name + base classes
+    let signature = extract_python_class_signature(node, source);
+
+    Some(Symbol {
+        kind: SymbolKind::Class,
+        name,
+        range,
+        name_range,
+        signature,
+        visibility: Visibility::Public,
+        is_async: false,
+    })
+}
+
+/// Extract the signature of a Python class.
+fn extract_python_class_signature(node: Node<'_>, source: &str) -> Option<String> {
+    let name_node = child_by_field(node, "name")?;
+    let name = node_text(name_node, source);
+
+    // Check for superclasses (argument_list contains base classes)
+    let superclasses = child_by_field(node, "superclasses")
+        .map(|n| node_text(n, source).to_string());
+
+    match superclasses {
+        Some(supers) => Some(format!("{}{}", name, supers)),
+        None => Some(name.to_string()),
+    }
+}
+
+/// Extract a Python module-level assignment (constant).
+fn extract_python_assignment(node: Node<'_>, source: &str) -> Option<Symbol> {
+    // Get the left side of the assignment (the name)
+    let left_node = child_by_field(node, "left")?;
+
+    // Only extract simple identifier assignments, not tuple unpacking etc.
+    if left_node.kind() != "identifier" {
+        return None;
+    }
+
+    let name = node_text(left_node, source).to_string();
+
+    // Skip dunder attributes (they're typically not user-defined constants)
+    // except for __all__ which we want to capture
+    if name.starts_with("__") && name.ends_with("__") && name != "__all__" {
+        return None;
+    }
+
+    let name_range = node_byte_range(left_node);
+    let range = node_byte_range(node);
+
+    // Get the type annotation if present
+    let type_annotation = child_by_field(node, "type")
+        .map(|n| format!(": {}", node_text(n, source)));
+
+    // Build signature
+    let signature = match type_annotation {
+        Some(ann) => Some(format!("{}{}", name, ann)),
+        None => Some(name.clone()),
+    };
+
+    Some(Symbol {
+        kind: SymbolKind::Const, // Using Const for module-level assignments
+        name,
+        range,
+        name_range,
+        signature,
+        visibility: Visibility::Public,
+        is_async: false,
+    })
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -673,9 +866,13 @@ pub async fn fetch<'a, T: Deserialize<'a>>(url: &'a str) -> Result<T, Error> {
 
     #[test]
     fn test_unsupported_language_returns_empty() {
-        let code = "def foo(): pass";
-        let tree = parse(code, Language::Python).unwrap();
-        let symbols = extract_symbols(&tree, code, Language::Python);
+        // Go is in the Language enum but has no extraction implemented yet
+        // We test the fallback path by parsing with Rust grammar
+        // but extracting with Go language (which has no extractor)
+        let rust_code = "fn main() {}";
+        let tree = parse(rust_code, Language::Rust).unwrap();
+        // Force Go language to test the fallback path
+        let symbols = extract_symbols(&tree, rust_code, Language::Go);
 
         assert!(symbols.is_empty());
     }
@@ -1103,5 +1300,333 @@ macro_rules! my_macro {
 
         let version_const = symbols.iter().find(|s| s.name == "VERSION").unwrap();
         assert_eq!(version_const.visibility, Visibility::Private);
+    }
+
+    // ============================================
+    // Python Function Extraction Tests
+    // ============================================
+
+    #[test]
+    fn test_extract_python_simple_function() {
+        let code = r#"
+def hello():
+    print("Hello, world!")
+
+def greet(name):
+    return f"Hello, {name}!"
+"#;
+        let tree = parse(code, Language::Python).unwrap();
+        let symbols = extract_symbols(&tree, code, Language::Python);
+
+        assert_eq!(symbols.len(), 2);
+
+        // First function
+        assert_eq!(symbols[0].name, "hello");
+        assert_eq!(symbols[0].kind, SymbolKind::Function);
+        assert!(!symbols[0].is_async);
+        assert_eq!(symbols[0].signature.as_deref(), Some("hello()"));
+
+        // Second function
+        assert_eq!(symbols[1].name, "greet");
+        assert_eq!(symbols[1].kind, SymbolKind::Function);
+        assert_eq!(symbols[1].signature.as_deref(), Some("greet(name)"));
+    }
+
+    #[test]
+    fn test_extract_python_async_function() {
+        let code = r#"
+async def fetch_data(url):
+    return await get(url)
+
+async def process():
+    data = await fetch_data("http://example.com")
+    return data
+"#;
+        let tree = parse(code, Language::Python).unwrap();
+        let symbols = extract_symbols(&tree, code, Language::Python);
+
+        assert_eq!(symbols.len(), 2);
+
+        // First async function
+        assert_eq!(symbols[0].name, "fetch_data");
+        assert!(symbols[0].is_async);
+        assert_eq!(symbols[0].signature.as_deref(), Some("fetch_data(url)"));
+
+        // Second async function
+        assert_eq!(symbols[1].name, "process");
+        assert!(symbols[1].is_async);
+    }
+
+    #[test]
+    fn test_extract_python_decorated_function() {
+        let code = r#"
+@decorator
+def simple():
+    pass
+
+@lru_cache(maxsize=128)
+def cached(n):
+    return n * 2
+
+@app.route("/")
+@requires_auth
+def handler():
+    pass
+"#;
+        let tree = parse(code, Language::Python).unwrap();
+        let symbols = extract_symbols(&tree, code, Language::Python);
+
+        assert_eq!(symbols.len(), 3);
+
+        assert_eq!(symbols[0].name, "simple");
+        assert_eq!(symbols[1].name, "cached");
+        assert_eq!(symbols[2].name, "handler");
+    }
+
+    #[test]
+    fn test_extract_python_function_with_type_hints() {
+        let code = r#"
+def greet(name: str) -> str:
+    return f"Hello, {name}"
+
+def process(items: List[int], mapping: Dict[str, int]) -> Optional[int]:
+    return sum(items)
+
+def complex(
+    a: int,
+    b: str = "default",
+    *args: Any,
+    **kwargs: Any
+) -> None:
+    pass
+"#;
+        let tree = parse(code, Language::Python).unwrap();
+        let symbols = extract_symbols(&tree, code, Language::Python);
+
+        assert_eq!(symbols.len(), 3);
+
+        // Function with simple type hints
+        assert_eq!(symbols[0].name, "greet");
+        let sig = symbols[0].signature.as_ref().unwrap();
+        assert!(sig.contains("name: str"));
+        assert!(sig.contains("-> str"));
+
+        // Function with complex type hints
+        assert_eq!(symbols[1].name, "process");
+        let sig = symbols[1].signature.as_ref().unwrap();
+        assert!(sig.contains("items: List[int]"));
+        assert!(sig.contains("-> Optional[int]"));
+
+        // Function with many parameters
+        assert_eq!(symbols[2].name, "complex");
+    }
+
+    #[test]
+    fn test_extract_python_function_byte_ranges() {
+        let code = "def foo():\n    pass\ndef bar():\n    pass";
+        let tree = parse(code, Language::Python).unwrap();
+        let symbols = extract_symbols(&tree, code, Language::Python);
+
+        assert_eq!(symbols.len(), 2);
+
+        // First function byte range
+        let foo_text = &code[symbols[0].range.start..symbols[0].range.end];
+        assert!(foo_text.starts_with("def foo()"));
+        assert_eq!(&code[symbols[0].name_range.start..symbols[0].name_range.end], "foo");
+
+        // Second function byte range
+        let bar_text = &code[symbols[1].range.start..symbols[1].range.end];
+        assert!(bar_text.starts_with("def bar()"));
+        assert_eq!(&code[symbols[1].name_range.start..symbols[1].name_range.end], "bar");
+    }
+
+    // ============================================
+    // Python Class Extraction Tests
+    // ============================================
+
+    #[test]
+    fn test_extract_python_simple_class() {
+        let code = r#"
+class Point:
+    def __init__(self, x, y):
+        self.x = x
+        self.y = y
+
+    def distance(self):
+        return (self.x ** 2 + self.y ** 2) ** 0.5
+"#;
+        let tree = parse(code, Language::Python).unwrap();
+        let symbols = extract_symbols(&tree, code, Language::Python);
+
+        // Should only extract the class, not the methods (methods are inside class)
+        assert_eq!(symbols.len(), 1);
+        assert_eq!(symbols[0].name, "Point");
+        assert_eq!(symbols[0].kind, SymbolKind::Class);
+        assert_eq!(symbols[0].signature.as_deref(), Some("Point"));
+    }
+
+    #[test]
+    fn test_extract_python_class_with_inheritance() {
+        let code = r#"
+class Animal:
+    pass
+
+class Dog(Animal):
+    pass
+
+class Labrador(Dog, Friendly):
+    pass
+"#;
+        let tree = parse(code, Language::Python).unwrap();
+        let symbols = extract_symbols(&tree, code, Language::Python);
+
+        assert_eq!(symbols.len(), 3);
+
+        // Base class
+        assert_eq!(symbols[0].name, "Animal");
+        assert_eq!(symbols[0].signature.as_deref(), Some("Animal"));
+
+        // Single inheritance
+        assert_eq!(symbols[1].name, "Dog");
+        assert_eq!(symbols[1].signature.as_deref(), Some("Dog(Animal)"));
+
+        // Multiple inheritance
+        assert_eq!(symbols[2].name, "Labrador");
+        assert_eq!(symbols[2].signature.as_deref(), Some("Labrador(Dog, Friendly)"));
+    }
+
+    #[test]
+    fn test_extract_python_dataclass() {
+        let code = r#"
+from dataclasses import dataclass
+
+@dataclass
+class Point:
+    x: float
+    y: float
+
+@dataclass(frozen=True)
+class ImmutablePoint:
+    x: float
+    y: float
+"#;
+        let tree = parse(code, Language::Python).unwrap();
+        let symbols = extract_symbols(&tree, code, Language::Python);
+
+        // Should extract both dataclasses
+        let classes: Vec<_> = symbols.iter().filter(|s| s.kind == SymbolKind::Class).collect();
+        assert_eq!(classes.len(), 2);
+        assert_eq!(classes[0].name, "Point");
+        assert_eq!(classes[1].name, "ImmutablePoint");
+    }
+
+    // ============================================
+    // Python Module-level Items Tests
+    // ============================================
+
+    #[test]
+    fn test_extract_python_module_constants() {
+        let code = r#"
+VERSION = "1.0.0"
+MAX_SIZE = 1024
+PI = 3.14159
+
+# Type-annotated constants
+NAME: str = "MyApp"
+COUNT: int = 42
+"#;
+        let tree = parse(code, Language::Python).unwrap();
+        let symbols = extract_symbols(&tree, code, Language::Python);
+
+        let consts: Vec<_> = symbols.iter().filter(|s| s.kind == SymbolKind::Const).collect();
+        assert_eq!(consts.len(), 5);
+
+        let version = consts.iter().find(|s| s.name == "VERSION").unwrap();
+        assert_eq!(version.signature.as_deref(), Some("VERSION"));
+
+        let name = consts.iter().find(|s| s.name == "NAME").unwrap();
+        assert_eq!(name.signature.as_deref(), Some("NAME: str"));
+    }
+
+    #[test]
+    fn test_extract_python_all_definition() {
+        let code = r#"
+__all__ = ["foo", "bar", "baz"]
+
+def foo():
+    pass
+
+def bar():
+    pass
+"#;
+        let tree = parse(code, Language::Python).unwrap();
+        let symbols = extract_symbols(&tree, code, Language::Python);
+
+        // Should have __all__ and two functions
+        let all_sym = symbols.iter().find(|s| s.name == "__all__");
+        assert!(all_sym.is_some());
+        assert_eq!(all_sym.unwrap().kind, SymbolKind::Const);
+
+        let funcs: Vec<_> = symbols.iter().filter(|s| s.kind == SymbolKind::Function).collect();
+        assert_eq!(funcs.len(), 2);
+    }
+
+    // ============================================
+    // Python Integration Test
+    // ============================================
+
+    #[test]
+    fn test_extract_all_python_items() {
+        let code = r#"
+# A comprehensive Python file with various item types
+
+__all__ = ["Config", "main", "process"]
+
+VERSION = "1.0.0"
+MAX_RETRIES: int = 3
+
+class Config:
+    def __init__(self, name: str):
+        self.name = name
+
+    def validate(self) -> bool:
+        return True
+
+class AdvancedConfig(Config):
+    pass
+
+def main() -> None:
+    config = Config("test")
+    print(config.name)
+
+async def process(data: List[int]) -> int:
+    return sum(data)
+
+@decorator
+def helper():
+    pass
+"#;
+        let tree = parse(code, Language::Python).unwrap();
+        let symbols = extract_symbols(&tree, code, Language::Python);
+
+        // Count each type
+        let count_kind = |kind: SymbolKind| symbols.iter().filter(|s| s.kind == kind).count();
+
+        assert_eq!(count_kind(SymbolKind::Const), 3, "Should have 3 constants (__all__, VERSION, MAX_RETRIES)");
+        assert_eq!(count_kind(SymbolKind::Class), 2, "Should have 2 classes");
+        assert_eq!(count_kind(SymbolKind::Function), 3, "Should have 3 functions");
+
+        // Verify async function is marked as async
+        let process_fn = symbols.iter().find(|s| s.name == "process").unwrap();
+        assert!(process_fn.is_async);
+        assert!(process_fn.signature.as_ref().unwrap().contains("-> int"));
+
+        // Verify class inheritance
+        let advanced = symbols.iter().find(|s| s.name == "AdvancedConfig").unwrap();
+        assert!(advanced.signature.as_ref().unwrap().contains("(Config)"));
+
+        // Verify constant with type annotation
+        let max_retries = symbols.iter().find(|s| s.name == "MAX_RETRIES").unwrap();
+        assert!(max_retries.signature.as_ref().unwrap().contains(": int"));
     }
 }

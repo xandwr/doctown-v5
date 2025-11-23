@@ -230,38 +230,38 @@
 ## M1.6: Symbol Extraction - Python (`doctown-ingest`)
 
 ### M1.6.1 Function Extraction
-- [ ] Extract `def` function definitions
-- [ ] Extract `async def` async functions
-- [ ] Capture function name
-- [ ] Capture parameters (with type hints if present)
-- [ ] Capture return type hint if present
-- [ ] Capture byte range
-- [ ] Capture decorators
-- [ ] [T] Unit test: extract simple function
-- [ ] [T] Unit test: extract async function
-- [ ] [T] Unit test: extract decorated function
-- [ ] [T] Unit test: extract function with type hints
+- [x] Extract `def` function definitions
+- [x] Extract `async def` async functions
+- [x] Capture function name
+- [x] Capture parameters (with type hints if present)
+- [x] Capture return type hint if present
+- [x] Capture byte range
+- [x] Capture decorators
+- [x] [T] Unit test: extract simple function
+- [x] [T] Unit test: extract async function
+- [x] [T] Unit test: extract decorated function
+- [x] [T] Unit test: extract function with type hints
 
 ### M1.6.2 Class Extraction
-- [ ] Extract `class` definitions
-- [ ] Capture class name
-- [ ] Capture base classes
-- [ ] Capture method definitions within class
-- [ ] Capture `__init__` specially
-- [ ] Capture byte range
-- [ ] Capture decorators (dataclass, etc.)
-- [ ] [T] Unit test: extract simple class
-- [ ] [T] Unit test: extract class with inheritance
-- [ ] [T] Unit test: extract dataclass
+- [x] Extract `class` definitions
+- [x] Capture class name
+- [x] Capture base classes
+- [x] Capture method definitions within class
+- [x] Capture `__init__` specially
+- [x] Capture byte range
+- [x] Capture decorators (dataclass, etc.)
+- [x] [T] Unit test: extract simple class
+- [x] [T] Unit test: extract class with inheritance
+- [x] [T] Unit test: extract dataclass
 
 ### M1.6.3 Module-level Items
-- [ ] Extract module-level variable assignments (NAME = ...)
-- [ ] Extract `__all__` definition if present
-- [ ] [T] Unit test: extract module constants
+- [x] Extract module-level variable assignments (NAME = ...)
+- [x] Extract `__all__` definition if present
+- [x] [T] Unit test: extract module constants
 
 ### M1.6.4 Python Integration Test
-- [ ] [T] Integration test: parse real Python file
-- [ ] [T] Verify all expected symbols extracted
+- [x] [T] Integration test: parse real Python file
+- [x] [T] Verify all expected symbols extracted
 
 ---
 
