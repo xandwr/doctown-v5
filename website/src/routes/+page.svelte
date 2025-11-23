@@ -2,12 +2,15 @@
 	import RepoInput from '$lib/components/RepoInput.svelte';
 	import EventLog from '$lib/components/EventLog.svelte';
 	import StatsSummary from '$lib/components/StatsSummary.svelte';
+	import FileTree from '$lib/components/FileTree.svelte';
+	import SymbolList from '$lib/components/SymbolList.svelte';
 	import { SSEClient } from '$lib/sse-client';
 
 	let isLoading = $state(false);
 	let events = $state<any[]>([]);
 	let errorMessage = $state<string | null>(null);
 	let sseClient: SSEClient | null = null;
+	let activeView = $state<'tree' | 'list'>('tree');
 
 	function handleSubmit(repoUrl: string) {
 		console.log('Submitting repo:', repoUrl);
@@ -103,6 +106,41 @@
 
 		{#if events.length > 0}
 			<StatsSummary {events} {isLoading} />
+			
+			<!-- View switcher -->
+			<div class="mb-8">
+				<div class="bg-white rounded-lg shadow-md overflow-hidden">
+					<!-- Tab buttons -->
+					<div class="flex border-b border-gray-200 bg-gray-50">
+						<button
+							onclick={() => (activeView = 'tree')}
+							class="flex-1 px-4 py-3 text-sm font-medium transition-colors {activeView === 'tree'
+								? 'bg-white text-blue-600 border-b-2 border-blue-600'
+								: 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'}"
+						>
+							📁 File Tree
+						</button>
+						<button
+							onclick={() => (activeView = 'list')}
+							class="flex-1 px-4 py-3 text-sm font-medium transition-colors {activeView === 'list'
+								? 'bg-white text-blue-600 border-b-2 border-blue-600'
+								: 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'}"
+						>
+							📋 Symbol List
+						</button>
+					</div>
+
+					<!-- View content -->
+					<div>
+						{#if activeView === 'tree'}
+							<FileTree {events} />
+						{:else}
+							<SymbolList {events} />
+						{/if}
+					</div>
+				</div>
+			</div>
+			
 			<EventLog {events} {isLoading} />
 		{/if}
 	</div>

@@ -6,7 +6,7 @@
 
 ## 🎯 Current Status (Updated: November 23, 2025)
 
-**Milestone 1 Progress: ~90% Complete**
+**Milestone 1 Progress: ~95% Complete**
 
 ### ✅ What's Working
 - **Backend API**: Full ingest pipeline with SSE streaming on port 3000
@@ -19,7 +19,7 @@
   - ~700ms processing time for small repos (blazing fast!)
   - Correct file counting (only successful parses counted as "processed")
 
-- **Frontend**: SvelteKit app with terminal-style event log on port 5173
+- **Frontend**: SvelteKit app with comprehensive UI on port 5173
   - Repo URL input with validation
   - SSE client with smart reconnection (stops on completion)
   - Terminal-style scrollable event log with:
@@ -28,6 +28,22 @@
     - Auto-scroll with manual override
     - Event summaries (not raw JSON)
     - Live streaming indicator
+  - Statistics summary panel with:
+    - Real-time processing stats
+    - Language breakdown with progress bars
+    - Skip reasons analysis
+    - Processing time and metrics
+  - File Tree component with:
+    - Collapsible file list
+    - Language icons for each file
+    - Symbol count per file
+    - Symbol list with kind badges
+  - Symbol List component with:
+    - Flat view of all symbols
+    - Search and filter capabilities
+    - Symbol signatures display
+    - Grouped by file
+  - Tab-based view switcher (Tree vs List)
   - Error handling and loading states
   - Clean connection lifecycle (no infinite loops)
 
@@ -37,6 +53,7 @@
   - Configured CORS for local dev
   - Tailwind CSS v4 setup
   - Development scripts for easy setup
+  - Comprehensive test suite with 14 passing tests
 
 ### 🐛 Recent Bug Fixes
 - Fixed infinite reconnection loop (frontend now closes SSE on completion)
@@ -44,14 +61,14 @@
 - Added millisecond timestamps to show real processing speed
 - Fixed frontend field name mismatch (files_processed vs files_detected)
 
-### 🚧 In Progress
-- Results summary statistics display
-- File tree and symbol visualization components
+### 🎉 Recently Completed
+- ✅ M1.11.5: Results Display (File Tree + Symbol List components)
+- ✅ Component tests for FileTree and SymbolList
+- ✅ Tabbed interface for switching between views
 
 ### ⏭️ Next Up
-- Add statistics summary panel (M1.11.4)
-- Complete results display UI (M1.11.5)
 - Deployment to RunPod + Vercel (M1.12)
+- Ship Milestone 1!
 
 ---
 
@@ -527,15 +544,15 @@
 - [x] Create terminal-style event log component (EventLog.svelte)
 - [x] Show event summaries (not raw JSON)
 - [x] Create statistics summary panel (StatsSummary.svelte)
-- [ ] Create file tree component
-- [ ] Show all detected files with language icons
-- [ ] Show symbol count per file
-- [ ] Create symbol list component
-- [ ] Show symbols grouped by file
-- [ ] Show symbol kind (fn, struct, class, etc.)
-- [ ] Show symbol signature
-- [ ] [T] Component test: file tree rendering
-- [ ] [T] Component test: symbol list rendering
+- [x] Create file tree component
+- [x] Show all detected files with language icons
+- [x] Show symbol count per file
+- [x] Create symbol list component
+- [x] Show symbols grouped by file
+- [x] Show symbol kind (fn, struct, class, etc.)
+- [x] Show symbol signature
+- [x] [T] Component test: file tree rendering
+- [x] [T] Component test: symbol list rendering
 
 ### M1.11.6 Error Handling
 - [x] Show error state if ingest fails
