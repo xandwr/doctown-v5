@@ -26,10 +26,14 @@ RUN apt-get update && apt-get install -y \
 # Copy the built binary
 COPY --from=builder /app/target/release/builder /app/builder
 
-# Copy RunPod handler (for serverless deployments)
+# Copy startup scripts
+COPY builder/start-server.sh /app/start-server.sh
 COPY builder/handler.py /app/handler.py
 
-# Install Python dependencies (for serverless deployments)
+# Make startup script executable
+RUN chmod +x /app/start-server.sh
+
+# Install Python dependencies (only needed for serverless mode)
 RUN pip install --no-cache-dir runpod requests
 
 # Set environment variables for production
@@ -43,6 +47,6 @@ EXPOSE 3000
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
   CMD curl -f http://localhost:3000/health || exit 1
 
-# Run the builder directly (for constant pod deployments)
-# For serverless, override this with: python3 -u /app/handler.py
+# Default: Run as persistent server
+# To run in serverless mode, override CMD with: ["python3", "-u", "/app/handler.py"]
 CMD ["/app/builder"]
