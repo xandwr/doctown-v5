@@ -791,11 +791,11 @@ ONNX model and tokenizer is in models/minilm-l6/.
 - [x] [T] Unit test: correct number of clusters
 
 ### M2.3.3 Cluster Labeling
-- [ ] Extract common terms from cluster members
-- [ ] Use TF-IDF or simple frequency for term importance
-- [ ] Generate 1-2 word label per cluster
-- [ ] [T] Unit test: label generation
-- [ ] [T] Manual verification: labels make sense
+- [x] Extract common terms from cluster members
+- [x] Use TF-IDF or simple frequency for term importance
+- [x] Generate 1-2 word label per cluster
+- [x] [T] Unit test: label generation
+- [x] [T] Manual verification: labels make sense
 
 ### M2.3.4 Graph Construction
 - [ ] Define `Node` struct (symbol_id, metadata)
