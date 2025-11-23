@@ -625,8 +625,17 @@
 2025-11-23:
 I can definitely do local inference using ONNX models now. The bottleneck before was
 running my builder pipeline on a serverless endpoint which was deployment hell.
-Now? Persistent CPU Pod. Which means it stays warm 24/7. Which means we can load ONNX embeddings ONCE and
+Now? Persistent CPU Pod at $0.07/hour. Which means it stays warm 24/7. Which means we can load ONNX embeddings ONCE and
 have them persist until that instance is shut down entirely. Perfect, solves the infra headache from v4.
+
+CHANGE: Reverted from GPU to CPU (cost optimization: $0.07/hr vs expensive GPU pods)
+- GPU was too expensive for runway (~2 weeks vs 10+ weeks)
+- Implemented intelligent memory management to prevent crashes on large codebases
+- Adaptive batching: automatically adjusts batch size (8-64) based on memory pressure
+- Memory monitoring: tracks RAM usage, forces GC, and prevents OOM crashes
+- Sequential processing: processes large batches in chunks with cleanup between
+- Can now handle giant repos (numpy, ort, etc.) without crashing the system
+- Using python:3.11-slim base image (CPU-only)
 
 ## M2.0: Additional Languages (Optional but valuable)
 

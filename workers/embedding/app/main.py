@@ -44,7 +44,7 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(
     title="Doctown Embedding Worker",
-    description="CPU-based embedding service using all-MiniLM-L6-v2 ONNX model",
+    description="CPU-optimized embedding service using all-MiniLM-L6-v2 ONNX model with intelligent batching",
     version="0.1.0",
     lifespan=lifespan,
 )

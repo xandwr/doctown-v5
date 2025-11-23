@@ -1,7 +1,7 @@
 [project]
 name = "doctown-embedding-worker"
 version = "0.1.0"
-description = "Embedding worker for Doctown using all-MiniLM-L6-v2 ONNX model"
+description = "Embedding worker for Doctown using all-MiniLM-L6-v2 ONNX model (CPU-optimized)"
 requires-python = ">=3.10"
 dependencies = [
     "fastapi>=0.104.0",
@@ -11,6 +11,7 @@ dependencies = [
     "transformers>=4.30.0",
     "onnxruntime>=1.16.0",
     "numpy>=1.24.0",
+    "psutil>=5.9.0",
 ]
 
 [project.optional-dependencies]
