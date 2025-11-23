@@ -2,6 +2,9 @@
 
 use doctown_common::DocError;
 use std::fmt;
+use std::path::Path;
+use tokio::fs::File;
+use tokio::io::AsyncWriteExt;
 use url::Url;
 
 /// A parsed GitHub repository URL.
@@ -97,6 +100,32 @@ impl GitHubUrl {
     }
 }
 
+/// A client for interacting with the GitHub API.
+pub struct GitHubClient {
+    client: reqwest::Client,
+}
+
+impl GitHubClient {
+    /// Creates a new GitHub client.
+    pub fn new() -> Self {
+        Self {
+            client: reqwest::Client::new(),
+        }
+    }
+
+    /// Downloads a repository archive to the specified path.
+    pub async fn download_repo(&self, url: &GitHubUrl, dest: &Path) -> Result<(), DocError> {
+        let archive_url = url.archive_url();
+        let response = self.client.get(&archive_url).send().await?;
+        let content = response.bytes().await?;
+
+        let mut file = File::create(dest).await?;
+        file.write_all(&content).await?;
+
+        Ok(())
+    }
+}
+
 impl fmt::Display for GitHubUrl {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "{}", self.canonical_url())
@@ -106,6 +135,7 @@ impl fmt::Display for GitHubUrl {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use tempfile::tempdir;
 
     #[test]
     fn test_parse_simple_url() {
@@ -177,5 +207,17 @@ mod tests {
     fn test_api_url() {
         let url = GitHubUrl::parse("https://github.com/owner/repo").unwrap();
         assert_eq!(url.api_url(), "https://api.github.com/repos/owner/repo");
+    }
+
+    #[tokio::test]
+    async fn test_download_repo() {
+        let url = GitHubUrl::parse("https://github.com/gemini-testing/lib-hello-gemini-rs").unwrap();
+        let dir = tempdir().unwrap();
+        let dest = dir.path().join("repo.zip");
+        let client = GitHubClient::new();
+        let result = client.download_repo(&url, &dest).await;
+        assert!(result.is_ok());
+        assert!(dest.exists());
+        dir.close().unwrap();
     }
 }

@@ -8,6 +8,10 @@
 
 pub mod github;
 pub mod language;
+pub mod parsing;
+pub mod symbol;
 
 pub use github::GitHubUrl;
 pub use language::detect_language;
+pub use parsing::parse;
+pub use symbol::{extract_symbols, Symbol};

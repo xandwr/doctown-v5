@@ -24,9 +24,6 @@
 # User sees: Paste a repo URL → See all detected files, languages, and symbols
 # User feels: "Whoa, it understands my repo?"
 #
-# Backend: Ingest worker, AST parsing, chunking, events streaming to website
-# No embedding. No generation. No docpack.
-#
 # Why ship here? This is a developer toy. Immediate validation that it works.
 # Already more insight than GitHub's own UI.
 # ═══════════════════════════════════════════════════════════════════════════════

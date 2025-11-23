@@ -54,6 +54,12 @@ impl From<url::ParseError> for DocError {
     }
 }
 
+impl From<reqwest::Error> for DocError {
+    fn from(err: reqwest::Error) -> Self {
+        DocError::Http(err.to_string())
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
