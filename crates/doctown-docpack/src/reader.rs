@@ -1,4 +1,4 @@
-use crate::{Clusters, Graph, Manifest, Nodes, SourceMap};
+use crate::{Clusters, EmbeddingsError, EmbeddingsReader, Graph, Manifest, Nodes, SourceMap, SymbolContexts};
 use flate2::read::GzDecoder;
 use sha2::{Digest, Sha256};
 use std::io::{self, Read};
@@ -24,6 +24,12 @@ pub enum ReadError {
     
     #[error("Invalid docpack format: {0}")]
     InvalidFormat(String),
+
+    #[error("Schema version mismatch: expected {expected}, got {actual}")]
+    SchemaVersionMismatch { expected: String, actual: String },
+
+    #[error("Embeddings error: {0}")]
+    Embeddings(#[from] EmbeddingsError),
 }
 
 pub type Result<T> = std::result::Result<T, ReadError>;
@@ -35,6 +41,8 @@ pub struct DocpackReader {
     nodes: Nodes,
     clusters: Clusters,
     source_map: SourceMap,
+    embeddings: Option<EmbeddingsReader>,
+    symbol_contexts: Option<SymbolContexts>,
 }
 
 impl DocpackReader {
@@ -88,12 +96,31 @@ impl DocpackReader {
             .ok_or_else(|| ReadError::MissingFile("source_map.json".to_string()))?;
         let source_map = SourceMap::from_json_bytes(source_map_bytes)?;
 
-        // Verify checksum
+        // Parse optional files
+        let embeddings = if let Some(embeddings_bytes) = files.get("embeddings.bin") {
+            Some(EmbeddingsReader::read(embeddings_bytes.clone())?)
+        } else {
+            None
+        };
+
+        let symbol_contexts = if let Some(contexts_bytes) = files.get("symbol_contexts.json") {
+            Some(SymbolContexts::from_json_bytes(contexts_bytes)?)
+        } else {
+            None
+        };
+
+        // Verify checksum (include optional files if present)
         let mut hasher = Sha256::new();
         hasher.update(graph_bytes);
         hasher.update(nodes_bytes);
         hasher.update(clusters_bytes);
         hasher.update(source_map_bytes);
+        if let Some(ref emb_bytes) = files.get("embeddings.bin") {
+            hasher.update(emb_bytes);
+        }
+        if let Some(ref ctx_bytes) = files.get("symbol_contexts.json") {
+            hasher.update(ctx_bytes);
+        }
         let checksum_hash = hasher.finalize();
         let computed_checksum = format!("{:x}", checksum_hash);
 
@@ -104,13 +131,30 @@ impl DocpackReader {
             });
         }
 
+        // Verify schema version
+        Self::verify_schema_version(&manifest)?;
+
         Ok(Self {
             manifest,
             graph,
             nodes,
             clusters,
             source_map,
+            embeddings,
+            symbol_contexts,
         })
+    }
+
+    /// Verify the schema version is compatible
+    fn verify_schema_version(manifest: &Manifest) -> Result<()> {
+        const SUPPORTED_VERSION: &str = "docpack/1.0";
+        if manifest.schema_version != SUPPORTED_VERSION {
+            return Err(ReadError::SchemaVersionMismatch {
+                expected: SUPPORTED_VERSION.to_string(),
+                actual: manifest.schema_version.clone(),
+            });
+        }
+        Ok(())
     }
 
     /// Get the manifest
@@ -138,6 +182,26 @@ impl DocpackReader {
         &self.source_map
     }
 
+    /// Get the embeddings (if present)
+    pub fn embeddings(&self) -> Option<&EmbeddingsReader> {
+        self.embeddings.as_ref()
+    }
+
+    /// Get the symbol contexts (if present)
+    pub fn symbol_contexts(&self) -> Option<&SymbolContexts> {
+        self.symbol_contexts.as_ref()
+    }
+
+    /// Check if embeddings are available
+    pub fn has_embeddings(&self) -> bool {
+        self.embeddings.is_some()
+    }
+
+    /// Check if symbol contexts are available
+    pub fn has_symbol_contexts(&self) -> bool {
+        self.symbol_contexts.is_some()
+    }
+
     /// Consume the reader and return all components
     pub fn into_parts(self) -> (Manifest, Graph, Nodes, Clusters, SourceMap) {
         (
@@ -146,6 +210,29 @@ impl DocpackReader {
             self.nodes,
             self.clusters,
             self.source_map,
+        )
+    }
+
+    /// Consume the reader and return all components including optional ones
+    pub fn into_parts_with_optional(
+        self,
+    ) -> (
+        Manifest,
+        Graph,
+        Nodes,
+        Clusters,
+        SourceMap,
+        Option<EmbeddingsReader>,
+        Option<SymbolContexts>,
+    ) {
+        (
+            self.manifest,
+            self.graph,
+            self.nodes,
+            self.clusters,
+            self.source_map,
+            self.embeddings,
+            self.symbol_contexts,
         )
     }
 }

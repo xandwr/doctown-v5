@@ -1,4 +1,4 @@
-use crate::{Clusters, Graph, Manifest, Nodes, SourceMap};
+use crate::{Clusters, EmbeddingsError, EmbeddingsWriter, Graph, Manifest, Nodes, SourceMap, SymbolContexts};
 use flate2::write::GzEncoder;
 use flate2::Compression;
 use sha2::{Digest, Sha256};
@@ -16,6 +16,9 @@ pub enum WriteError {
     
     #[error("Tar error: {0}")]
     Tar(String),
+
+    #[error("Embeddings error: {0}")]
+    Embeddings(#[from] EmbeddingsError),
 }
 
 pub type Result<T> = std::result::Result<T, WriteError>;
@@ -40,14 +43,28 @@ impl DocpackWriter {
         }
     }
 
-    /// Write a docpack to bytes
+    /// Write a docpack to bytes (without optional files)
     pub fn write(
+        &self,
+        manifest: Manifest,
+        graph: &Graph,
+        nodes: &Nodes,
+        clusters: &Clusters,
+        source_map: &SourceMap,
+    ) -> Result<Vec<u8>> {
+        self.write_with_optional(manifest, graph, nodes, clusters, source_map, None, None)
+    }
+
+    /// Write a docpack to bytes with optional embeddings and symbol contexts
+    pub fn write_with_optional(
         &self,
         mut manifest: Manifest,
         graph: &Graph,
         nodes: &Nodes,
         clusters: &Clusters,
         source_map: &SourceMap,
+        embeddings: Option<&EmbeddingsWriter>,
+        symbol_contexts: Option<&SymbolContexts>,
     ) -> Result<Vec<u8>> {
         // Serialize all components
         let graph_json = graph.to_json_bytes()?;
@@ -55,12 +72,26 @@ impl DocpackWriter {
         let clusters_json = clusters.to_json_bytes()?;
         let source_map_json = source_map.to_json_bytes()?;
 
+        // Serialize optional components
+        let embeddings_bin = embeddings.map(|e| e.write()).transpose()?;
+        let symbol_contexts_json = symbol_contexts.map(|s| s.to_json_bytes()).transpose()?;
+
+        // Update manifest optional flags
+        manifest.optional.has_embeddings = embeddings_bin.is_some();
+        manifest.optional.has_symbol_contexts = symbol_contexts_json.is_some();
+
         // Compute checksum of all content
         let mut hasher = Sha256::new();
         hasher.update(&graph_json);
         hasher.update(&nodes_json);
         hasher.update(&clusters_json);
         hasher.update(&source_map_json);
+        if let Some(ref emb_data) = embeddings_bin {
+            hasher.update(emb_data);
+        }
+        if let Some(ref ctx_data) = symbol_contexts_json {
+            hasher.update(ctx_data);
+        }
         let checksum_hash = hasher.finalize();
         let checksum_value = format!("{:x}", checksum_hash);
 
@@ -74,12 +105,20 @@ impl DocpackWriter {
         let tar_buffer = Vec::new();
         let mut tar_builder = Builder::new(tar_buffer);
 
-        // Add files to tar
+        // Add required files to tar
         self.add_file_to_tar(&mut tar_builder, "manifest.json", &manifest_json)?;
         self.add_file_to_tar(&mut tar_builder, "graph.json", &graph_json)?;
         self.add_file_to_tar(&mut tar_builder, "nodes.json", &nodes_json)?;
         self.add_file_to_tar(&mut tar_builder, "clusters.json", &clusters_json)?;
         self.add_file_to_tar(&mut tar_builder, "source_map.json", &source_map_json)?;
+
+        // Add optional files
+        if let Some(emb_data) = embeddings_bin {
+            self.add_file_to_tar(&mut tar_builder, "embeddings.bin", &emb_data)?;
+        }
+        if let Some(ctx_data) = symbol_contexts_json {
+            self.add_file_to_tar(&mut tar_builder, "symbol_contexts.json", &ctx_data)?;
+        }
 
         // Finish tar archive
         let tar_bytes = tar_builder

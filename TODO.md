@@ -1314,66 +1314,66 @@ Includes clusters and source_map. Embeddings stored separately in R2 for now.
 - [x] Define `Clusters` struct - **TypeScript version working**
 - [x] Define `Cluster` struct (cluster_id, label, member_count)
 - [x] Implement JSON serialization - **TypeScript**
-- [ ] Port to Rust
-- [ ] [T] Unit test: clusters
-- [ ] [T] Snapshot test: clusters.json
+- [x] Port to Rust
+- [x] [T] Unit test: clusters
+- [x] [T] Snapshot test: clusters.json
 
 ### M4.1.2 Source Map File
 - [x] Define `SourceMap` struct - **TypeScript version working**
 - [x] Define `FileEntry` struct (file_path, language, chunks)
 - [x] Define `ChunkEntry` struct (chunk_id, byte_range, symbol_ids)
 - [x] Implement JSON serialization - **TypeScript**
-- [ ] Port to Rust
-- [ ] [T] Unit test: source map
-- [ ] [T] Snapshot test: source_map.json
+- [x] Port to Rust
+- [x] [T] Unit test: source map
+- [x] [T] Snapshot test: source_map.json
 
 ### M4.1.3 Embeddings Binary Format
-- [ ] Define binary header (uint32 num_vectors, uint32 dimensions)
-- [ ] Implement `EmbeddingsWriter`
-- [ ] Write header
-- [ ] Write float32 vectors sequentially
-- [ ] Create index mapping chunk_id → byte offset
-- [ ] Implement `EmbeddingsReader`
-- [ ] Read header
-- [ ] Random access by chunk_id
-- [ ] [T] Unit test: write/read roundtrip
-- [ ] [T] Unit test: random access works
-- [ ] [T] Property test: various sizes
+- [x] Define binary header (uint32 num_vectors, uint32 dimensions)
+- [x] Implement `EmbeddingsWriter`
+- [x] Write header
+- [x] Write float32 vectors sequentially
+- [x] Create index mapping chunk_id → byte offset
+- [x] Implement `EmbeddingsReader`
+- [x] Read header
+- [x] Random access by chunk_id
+- [x] [T] Unit test: write/read roundtrip
+- [x] [T] Unit test: random access works
+- [x] [T] Property test: various sizes
 
 ### M4.1.4 Symbol Contexts (Optional)
-- [ ] Define `SymbolContexts` struct
-- [ ] Include raw prompt text for reproducibility
-- [ ] Mark as optional in manifest
-- [ ] [T] Unit test: contexts
+- [x] Define `SymbolContexts` struct
+- [x] Include raw prompt text for reproducibility
+- [x] Mark as optional in manifest
+- [x] [T] Unit test: contexts
 
 ### M4.1.5 Updated Manifest
-- [ ] Add `statistics.cluster_count`
-- [ ] Add `statistics.embedding_dimensions`
-- [ ] Add `optional.has_embeddings`
-- [ ] Add `optional.has_symbol_contexts`
-- [ ] Add `checksum` field (algorithm + value)
-- [ ] [T] Unit test: updated manifest
+- [x] Add `statistics.cluster_count`
+- [x] Add `statistics.embedding_dimensions`
+- [x] Add `optional.has_embeddings`
+- [x] Add `optional.has_symbol_contexts`
+- [x] Add `checksum` field (algorithm + value)
+- [x] [T] Unit test: updated manifest
 
 ### M4.1.6 Updated Writer
-- [ ] Add clusters.json to archive
-- [ ] Add source_map.json to archive
-- [ ] Optionally add embeddings.bin
-- [ ] Optionally add symbol_contexts.json
-- [ ] Update checksum calculation to include all files
-- [ ] [T] Unit test: full docpack
+- [x] Add clusters.json to archive
+- [x] Add source_map.json to archive
+- [x] Optionally add embeddings.bin
+- [x] Optionally add symbol_contexts.json
+- [x] Update checksum calculation to include all files
+- [x] [T] Unit test: full docpack
 
 ### M4.1.7 Updated Reader
-- [ ] Read all new files
-- [ ] Handle optional files gracefully
-- [ ] Provide access to embeddings by chunk_id
-- [ ] [T] Unit test: read full docpack
-- [ ] [T] Unit test: read minimal docpack (M3 format)
+- [x] Read all new files
+- [x] Handle optional files gracefully
+- [x] Provide access to embeddings by chunk_id
+- [x] [T] Unit test: read full docpack
+- [x] [T] Unit test: read minimal docpack (M3 format)
 
 ### M4.1.8 Schema Versioning
-- [ ] Define schema version "docpack/1.0"
-- [ ] Implement version checking in reader
-- [ ] Reject incompatible versions with clear error
-- [ ] [T] Unit test: version validation
+- [x] Define schema version "docpack/1.0"
+- [x] Implement version checking in reader
+- [x] Reject incompatible versions with clear error
+- [x] [T] Unit test: version validation
 
 ---
 

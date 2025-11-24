@@ -19,13 +19,35 @@ See `specs/docpack.md` for full specification.
 
 ## Usage
 
-### Creating a docpack
+### Creating a basic docpack
 
 ```rust
 use doctown_docpack::{DocpackWriter, Manifest, Graph, Nodes, Clusters, SourceMap};
 
 let writer = DocpackWriter::new();
-let bytes = writer.write(manifest, graph, nodes, clusters, source_map)?;
+let bytes = writer.write(manifest, &graph, &nodes, &clusters, &source_map)?;
+```
+
+### Creating a docpack with embeddings
+
+```rust
+use doctown_docpack::{DocpackWriter, EmbeddingsWriter, Manifest};
+
+// Create embeddings
+let mut embeddings = EmbeddingsWriter::new(384);
+embeddings.add_vector("chunk_1".to_string(), vec![0.1; 384])?;
+
+// Write docpack with embeddings
+let writer = DocpackWriter::new();
+let bytes = writer.write_with_optional(
+    manifest,
+    &graph,
+    &nodes,
+    &clusters,
+    &source_map,
+    Some(&embeddings),
+    None,
+)?;
 ```
 
 ### Reading a docpack
@@ -33,7 +55,18 @@ let bytes = writer.write(manifest, graph, nodes, clusters, source_map)?;
 ```rust
 use doctown_docpack::DocpackReader;
 
-let reader = DocpackReader::new(&bytes)?;
+let reader = DocpackReader::read(&bytes)?;
 let manifest = reader.manifest();
 let nodes = reader.nodes();
+
+// Access optional files
+if reader.has_embeddings() {
+    let embeddings = reader.embeddings().unwrap();
+    let vector = embeddings.get_vector("chunk_1")?;
+}
+
+if reader.has_symbol_contexts() {
+    let contexts = reader.symbol_contexts().unwrap();
+    let context = contexts.get_context("sym_a");
+}
 ```
