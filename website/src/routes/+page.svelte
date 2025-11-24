@@ -289,17 +289,13 @@
 			throw new Error(`Failed to upload docpack: ${error}`);
 		}
 		
-		const result = await response.json();
-		docpackUrl = result.url;
-		
-		// Clear memory-intensive data now that it's uploaded
-		embeddings.clear();
-		chunks = [];
-		
-		console.log(`Docpack uploaded successfully: ${result.key} (${Math.round(result.size / 1024)}KB)`);
-		
-		// Add upload event
-		events = [...events, {
+	const result = await response.json();
+	docpackUrl = result.url;
+	
+	console.log(`Docpack uploaded successfully: ${result.key} (${Math.round(result.size / 1024)}KB)`);
+	
+	// Add upload event
+	events = [...events, {
 			event_type: 'docpack.uploaded.v1',
 			payload: { 
 				key: result.key,
