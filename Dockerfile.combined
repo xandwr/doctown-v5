@@ -45,23 +45,9 @@ COPY models/minilm-l6/ /app/models/minilm-l6/
 # Install Python dependencies for both workers
 RUN pip install --no-cache-dir --upgrade pip && \
     cd /app/embedding && \
-    pip install --no-cache-dir \
-    fastapi>=0.104.0 \
-    uvicorn[standard]>=0.24.0 \
-    pydantic>=2.5.0 \
-    pydantic-settings>=2.0.0 \
-    transformers>=4.30.0 \
-    onnxruntime>=1.16.0 \
-    numpy>=1.24.0 && \
+    pip install --no-cache-dir -e . && \
     cd /app/generation && \
-    pip install --no-cache-dir \
-    fastapi>=0.104.0 \
-    uvicorn[standard]>=0.24.0 \
-    pydantic>=2.5.0 \
-    pydantic-settings>=2.0.0 \
-    openai>=1.0.0 \
-    tiktoken>=0.5.0 \
-    tenacity>=8.2.0
+    pip install --no-cache-dir -e .
 
 # Set environment variables
 ENV PRODUCTION=true
