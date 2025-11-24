@@ -3,7 +3,7 @@
 use actix_cors::Cors;
 use actix_web::{
     get, middleware, post,
-    web::{Data, Json, PayloadConfig},
+    web::{Data, Json, JsonConfig, PayloadConfig},
     App, HttpResponse, HttpServer, Responder,
 };
 use doctown_events::{
@@ -16,7 +16,7 @@ use std::collections::HashMap;
 use std::sync::Arc;
 use std::time::Instant;
 
-use crate::{cluster::Clusterer, graph::GraphBuilder, label::ClusterLabeler, EdgeKind};
+use crate::{cluster::Clusterer, context::ContextGenerator, graph::GraphBuilder, label::ClusterLabeler, EdgeKind, SymbolContext};
 
 /// Request schema for the /assemble endpoint.
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -53,6 +53,9 @@ pub struct SymbolMetadata {
     pub name: String,
     /// Symbol kind (e.g., "function", "class").
     pub kind: String,
+    /// Programming language (e.g., "rust", "python").
+    #[serde(default)]
+    pub language: String,
     /// File path.
     pub file_path: String,
     /// Symbol signature.
@@ -78,6 +81,8 @@ pub struct AssembleResponse {
     pub nodes: Vec<NodeInfo>,
     /// Graph edges.
     pub edges: Vec<EdgeInfo>,
+    /// Symbol contexts for LLM documentation.
+    pub symbol_contexts: Vec<SymbolContext>,
     /// Statistics.
     pub stats: AssemblyStats,
     /// Events emitted during assembly.
@@ -377,6 +382,36 @@ async fn assemble(req: Json<AssembleRequest>) -> impl Responder {
         serde_json::to_value(&graph_payload).unwrap(),
     ));
 
+    // Step 3.5: Generate symbol contexts for LLM documentation
+    // Build cluster label map
+    let mut cluster_labels: HashMap<String, String> = HashMap::new();
+    for cluster in &clusters {
+        for symbol_id in &cluster.members {
+            cluster_labels.insert(symbol_id.clone(), cluster.label.clone());
+        }
+    }
+
+    // Build language map
+    let mut languages: HashMap<String, String> = HashMap::new();
+    for symbol in &req.symbols {
+        languages.insert(symbol.symbol_id.clone(), symbol.language.clone());
+    }
+
+    // Build imports map
+    let mut imports_map: HashMap<String, Vec<String>> = HashMap::new();
+    for symbol in &req.symbols {
+        imports_map.insert(symbol.symbol_id.clone(), symbol.imports.clone());
+    }
+
+    // Generate contexts
+    let context_generator = ContextGenerator::new()
+        .with_cluster_labels(cluster_labels)
+        .with_languages(languages)
+        .with_imports(imports_map);
+    
+    let symbol_contexts = context_generator.generate(&graph);
+    info!("Generated {} symbol contexts", symbol_contexts.len());
+
     // Step 4: Compute centrality
     let mut nodes = Vec::new();
     for node in &graph.nodes {
@@ -439,6 +474,7 @@ async fn assemble(req: Json<AssembleRequest>) -> impl Responder {
         clusters,
         nodes,
         edges,
+        symbol_contexts,
         stats: AssemblyStats {
             cluster_count: k,
             node_count: graph.nodes.len(),
@@ -473,6 +509,10 @@ pub async fn start_server(host: &str, port: u16) -> std::io::Result<()> {
             .app_data(
                 // Increase JSON payload limit to 100MB for large embedding batches
                 PayloadConfig::new(100 * 1024 * 1024)
+            )
+            .app_data(
+                // Also set JSON parser limit to 100MB (separate from raw payload limit)
+                JsonConfig::default().limit(100 * 1024 * 1024)
             )
             .wrap(middleware::Logger::default())
             .wrap(cors)

@@ -6,7 +6,9 @@
 
 ## 🎯 Current Status (Updated: November 23, 2025)
 
-**Milestone 2 Progress: M2.1 ✅ Complete | M2.2 ✅ Complete**
+**Milestone 2 Progress: M2.1 ✅ Complete | M2.2 ✅ Complete | M2.3 ✅ Complete | M2.4 ✅ Complete**
+
+**Major Achievement:** Full pipeline working end-to-end with R2 storage! 🎉
 
 ### ✅ What's Working
 - **Backend API**: Full ingest pipeline with SSE streaming on port 3000
@@ -44,6 +46,10 @@
     - Symbol signatures display
     - Grouped by file
   - Tab-based view switcher (Tree vs List)
+  - 4-stage pipeline progress indicator (Ingest → Embed → Assemble → Upload)
+  - Assembly results display (clusters, nodes, edges counts)
+  - .docpack download UI with R2 integration
+  - Memory-efficient architecture (clears embeddings/chunks after upload)
   - Error handling and loading states
   - Clean connection lifecycle (no infinite loops)
 
@@ -51,11 +57,29 @@
   - all-MiniLM-L6-v2 model (384 dimensions)
   - CPU-optimized inference
   - `/health` and `/embed` endpoints
-  - Batch processing support
+  - Batch processing support (256 chunks per batch)
   - Event emission for batch operations
   - Integrated into ingest pipeline
   - All chunks automatically embedded
   - Stats displayed in frontend UI
+
+- **Assembly Server**: Rust Actix-web service on port 3001
+  - K-means clustering with smart heuristics
+  - Automatic cluster labeling (TF-IDF based)
+  - Graph construction (nodes, edges, metrics)
+  - Similarity edges (cosine similarity > 0.7)
+  - Centrality scoring (degree-based)
+  - `/health` and `/assemble` endpoints
+  - Integrated into pipeline
+  - Results displayed in frontend UI
+
+- **R2 Storage**: Cloudflare R2 integration
+  - .docpack packaging (manifest, graph, nodes, clusters, source_map)
+  - Server-side upload API endpoint
+  - Stored at: `docpacks/[owner]/[repo].docpack`
+  - Download UI with success banner and URL copy
+  - Memory optimization: clears embeddings/chunks after upload
+  - AWS S3 SDK for uploads
 
 - **Development Environment**: 
   - Cargo workspace with 3 crates (common, events, ingest)
@@ -76,13 +100,27 @@
 ### 🎉 Recently Completed
 - ✅ M2.1: Call Graph Extraction (imports, calls, resolution across all languages)
 - ✅ M2.2: Embedding Worker (Python FastAPI + ONNX, integrated into pipeline)
+- ✅ M2.3: Semantic Assembly (clustering, labeling, graph construction)
+- ✅ M2.4: Pipeline Integration (Ingest → Embed → Assemble working end-to-end)
 - ✅ Embedding Integration: All chunks automatically embedded during ingest
 - ✅ Frontend: Displays embedding stats (🧠 Embedded count)
 - ✅ Combined Docker image: Builder + Embedding Worker in one container
+- ✅ R2 Storage: .docpack files uploaded to Cloudflare R2 (memory-efficient)
 
-### ⏭️ Next Up
-- M2.3: Semantic Assembly (clustering, labeling)
-- Deploy combined container to RunPod
+### ⏭️ Next Up (Priority Order)
+1. **M2.5: Graph Visualization** - Add interactive graph UI to explore clusters/nodes
+2. **Testing & Polish** - Integration tests for full pipeline, error handling improvements
+3. **Deployment** - Deploy combined container (ingest + embedding + assembly) to RunPod
+4. **M3.1: LLM Documentation** - OpenAI integration for generating symbol summaries
+5. **Rust Docpack Crate** - Port TypeScript .docpack implementation to Rust backend
+
+### 📋 Known TODOs / Tech Debt
+- [ ] Add file size display before docpack download
+- [ ] Integration test for full pipeline (ingest → embed → assemble → upload)
+- [ ] Better error handling for R2 upload failures
+- [ ] Docpack versioning (multiple versions per repo)
+- [ ] Docpack expiration/TTL for cost management
+- [ ] CDN caching for popular docpacks
 
 ---
 
@@ -859,7 +897,20 @@ ONNX model and tokenizer is in models/minilm-l6/.
 - [x] Store chunks in memory during pipeline
 - [x] Store embeddings as they return
 - [x] Pass everything to assembly at end
+- [x] Clear embeddings and chunks after R2 upload (memory optimization)
 - [ ] [T] Integration test: full pipeline works
+
+### M2.4.3 R2 Storage Integration (November 23, 2025)
+- [x] Create docpack packaging utility (`website/src/lib/docpack.ts`)
+- [x] Implement .docpack format per specs/docpack.md
+- [x] Create R2 upload API endpoint (`website/src/routes/api/upload-docpack/+server.ts`)
+- [x] Add AWS S3 SDK for R2 uploads (@aws-sdk/client-s3)
+- [x] Store docpacks at: `docpacks/[owner]/[repo].docpack`
+- [x] Add 4th pipeline stage: "Uploading .docpack to R2"
+- [x] Add download UI with green success banner
+- [x] Memory optimization: clear embeddings Map and chunks array after upload
+- [x] Environment configuration for R2 credentials (BUCKET_NAME, BUCKET_ACCESS_KEY_ID, etc.)
+- [x] Created setup documentation (R2_STORAGE_IMPLEMENTATION.md, SETUP_R2_STORAGE.md)
 
 ---
 
@@ -909,7 +960,7 @@ ONNX model and tokenizer is in models/minilm-l6/.
 
 ### M2.6.1 Embedding Worker Deployment
 - [ ] Create Dockerfile for embedding worker
-- [ ] Configure for GPU (CUDA base image)
+- [ ] Configure for GPU (CUDA base image) -- SIKE we using CPU now!
 - [ ] Build and test locally
 - [ ] Deploy to RunPod (GPU serverless)
 - [ ] Verify `/health` responds
@@ -951,28 +1002,28 @@ ONNX model and tokenizer is in models/minilm-l6/.
 # $10/mo subscriptions become viable today.
 # ═══════════════════════════════════════════════════════════════════════════════
 
-## M3.1: Symbol Context Generation (`doctown-assembly`)
+## M3.1: Symbol Context Generation (`doctown-assembly`) ✅
 
-### M3.1.1 Context Structure
-- [ ] Define `SymbolContext` struct
-- [ ] Include: symbol name, kind, language
-- [ ] Include: file path, signature
-- [ ] Include: calls list (names)
-- [ ] Include: called_by list (names)
-- [ ] Include: imports used
-- [ ] Include: cluster label
-- [ ] Include: centrality score
-- [ ] [T] Unit test: context creation
+### M3.1.1 Context Structure ✅
+- [x] Define `SymbolContext` struct
+- [x] Include: symbol name, kind, language
+- [x] Include: file path, signature
+- [x] Include: calls list (names)
+- [x] Include: called_by list (names)
+- [x] Include: imports used
+- [x] Include: cluster label
+- [x] Include: centrality score
+- [x] [T] Unit test: context creation
 
-### M3.1.2 Context Generation
-- [ ] Generate context for each symbol after graph built
-- [ ] Include top 3 related symbols
-- [ ] Truncate long lists (max 10 items)
-- [ ] [T] Unit test: context generation
+### M3.1.2 Context Generation ✅
+- [x] Generate context for each symbol after graph built
+- [x] Include top 3 related symbols
+- [x] Truncate long lists (max 10 items)
+- [x] [T] Unit test: context generation
 
-### M3.1.3 Assembly API Update
-- [ ] Include symbol_contexts in assembly response
-- [ ] [T] Verify contexts included in response
+### M3.1.3 Assembly API Update ✅
+- [x] Include symbol_contexts in assembly response
+- [x] [T] Verify contexts included in response
 
 ---
 
@@ -1069,34 +1120,47 @@ ONNX model and tokenizer is in models/minilm-l6/.
 
 ## M3.3: Minimal Docpack Format (`doctown-docpack`)
 
+**Note:** Basic .docpack format already implemented in TypeScript (website/src/lib/docpack.ts) 
+for R2 storage. This milestone will create the Rust crate for backend generation.
+
 ### M3.3.1 Crate Setup
 - [ ] Create `crates/doctown-docpack/`
 - [ ] Add dependencies: serde, serde_json, flate2 (gzip)
 - [ ] Set up module structure
+- [ ] Port TypeScript implementation to Rust
 
 ### M3.3.2 Manifest
-- [ ] Define `Manifest` struct (minimal version)
-- [ ] Include: schema_version ("docpack/1.0")
-- [ ] Include: docpack_id (SHA-256 of contents)
-- [ ] Include: created_at
-- [ ] Include: source (repo_url, git_ref, commit_hash)
-- [ ] Include: statistics (file_count, symbol_count)
-- [ ] Implement JSON serialization
+- [~] Define `Manifest` struct (minimal version) - **Draft in TypeScript**
+- [x] Include: schema_version ("docpack/1.0")
+- [x] Include: docpack_id (SHA-256 of contents)
+- [x] Include: created_at
+- [x] Include: source (repo_url, git_ref, commit_hash)
+- [x] Include: statistics (file_count, symbol_count, cluster_count, embedding_dimensions)
+- [x] Include: checksum (algorithm, value)
+- [x] Include: optional flags (has_embeddings, has_symbol_contexts)
+- [~] Implement JSON serialization - **Working in TypeScript**
+- [ ] Port to Rust with proper types
 - [ ] [T] Unit test: manifest creation
 - [ ] [T] Snapshot test: manifest JSON
 
 ### M3.3.3 Nodes (Symbols + Docs)
-- [ ] Define `Nodes` struct
-- [ ] Define `Symbol` struct with documentation field
-- [ ] Define `Documentation` struct (summary only for M3)
-- [ ] Implement JSON serialization
+- [~] Define `Nodes` struct - **Draft in TypeScript**
+- [x] Define `Symbol` struct with documentation field - **TypeScript version**
+- [x] Include: id, name, kind, language, file_path, byte_range
+- [x] Include: signature, calls, called_by, imports
+- [x] Include: cluster_id, centrality
+- [x] Define `Documentation` struct (summary + optional details)
+- [~] Implement JSON serialization - **Working in TypeScript**
+- [ ] Port to Rust
 - [ ] [T] Unit test: nodes creation
 - [ ] [T] Snapshot test: nodes JSON
 
 ### M3.3.4 Graph
-- [ ] Define `Graph` struct (nodes list, edges list)
-- [ ] Define `Edge` struct (source, target, kind)
-- [ ] Implement JSON serialization
+- [~] Define `Graph` struct (nodes list, edges list) - **Draft in TypeScript**
+- [x] Define `Edge` struct (from, to, kind) - **TypeScript version**
+- [x] Include metrics (density, avg_degree)
+- [~] Implement JSON serialization - **Working in TypeScript**
+- [ ] Port to Rust
 - [ ] [T] Unit test: graph creation
 - [ ] [T] Snapshot test: graph JSON
 
@@ -1172,8 +1236,11 @@ ONNX model and tokenizer is in models/minilm-l6/.
 - [ ] [T] Component test: summary displays
 
 ### M3.5.2 Docpack Download
-- [ ] Add "Download .docpack" button
-- [ ] Trigger download with proper filename
+- [x] Add "Download .docpack" button - **Implemented with R2 integration**
+- [x] Trigger download from R2 URL
+- [x] Show docpack URL with copy button
+- [x] Display green success banner when ready
+- [x] Show download link after pipeline completion
 - [ ] Show file size before download
 - [ ] [T] Test: download works
 
@@ -1232,18 +1299,23 @@ ONNX model and tokenizer is in models/minilm-l6/.
 
 ## M4.1: Complete Docpack Format (`doctown-docpack`)
 
+**Note:** Full .docpack format already implemented in TypeScript (website/src/lib/docpack.ts).
+Includes clusters and source_map. Embeddings stored separately in R2 for now.
+
 ### M4.1.1 Clusters File
-- [ ] Define `Clusters` struct
-- [ ] Define `Cluster` struct (cluster_id, label, member_count)
-- [ ] Implement JSON serialization
+- [x] Define `Clusters` struct - **TypeScript version working**
+- [x] Define `Cluster` struct (cluster_id, label, member_count)
+- [x] Implement JSON serialization - **TypeScript**
+- [ ] Port to Rust
 - [ ] [T] Unit test: clusters
 - [ ] [T] Snapshot test: clusters.json
 
 ### M4.1.2 Source Map File
-- [ ] Define `SourceMap` struct
-- [ ] Define `FileEntry` struct (file_path, language, chunks)
-- [ ] Define `ChunkEntry` struct (chunk_id, byte_range, symbol_ids)
-- [ ] Implement JSON serialization
+- [x] Define `SourceMap` struct - **TypeScript version working**
+- [x] Define `FileEntry` struct (file_path, language, chunks)
+- [x] Define `ChunkEntry` struct (chunk_id, byte_range, symbol_ids)
+- [x] Implement JSON serialization - **TypeScript**
+- [ ] Port to Rust
 - [ ] [T] Unit test: source map
 - [ ] [T] Snapshot test: source_map.json
 

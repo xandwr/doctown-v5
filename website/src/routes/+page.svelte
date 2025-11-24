@@ -6,19 +6,21 @@
 	import SymbolList from '$lib/components/SymbolList.svelte';
 	import { SSEClient } from '$lib/sse-client';
 	import { EmbeddingClient, AssemblyClient, type Chunk, type SymbolMetadata, type ChunkWithEmbedding } from '$lib/api-client';
+	import { createDocpack, parseRepoUrl } from '$lib/docpack';
 
 	let isLoading = $state(false);
 	let events = $state<any[]>([]);
 	let errorMessage = $state<string | null>(null);
 	let sseClient: SSEClient | null = null;
 	let activeView = $state<'tree' | 'list'>('tree');
-	let pipelineStage = $state<'ingest' | 'embedding' | 'assembly' | 'complete'>('ingest');
+	let pipelineStage = $state<'ingest' | 'embedding' | 'assembly' | 'uploading' | 'complete'>('ingest');
 	
 	// Pipeline data storage
 	let chunks = $state<Chunk[]>([]);
 	let symbols = $state<SymbolMetadata[]>([]);
 	let embeddings = $state<Map<string, number[]>>(new Map());
 	let assemblyResult = $state<any>(null);
+	let docpackUrl = $state<string | null>(null);
 	
 	// Stats for display without storing everything
 	let stats = $state({
@@ -38,6 +40,7 @@
 		symbols = [];
 		embeddings = new Map();
 		assemblyResult = null;
+		docpackUrl = null;
 		stats = { filesProcessed: 0, filesSkipped: 0, chunksCreated: 0, chunksEmbedded: 0 };
 
 		const apiUrl = import.meta.env.VITE_INGEST_API_URL || 'http://localhost:3000';
@@ -57,8 +60,12 @@
 			pipelineStage = 'assembly';
 			await runAssemblyStage(assemblyUrl, repoUrl, jobId);
 			
+			// Stage 4: Upload .docpack to R2
+			pipelineStage = 'uploading';
+			await uploadDocpack(repoUrl, jobId);
+			
 			pipelineStage = 'complete';
-			console.log('Pipeline complete!');
+			console.log('Pipeline complete! Docpack available at:', docpackUrl);
 		} catch (error: any) {
 			console.error('Pipeline error:', error);
 			errorMessage = error.message;
@@ -227,6 +234,66 @@
 		console.log(`Assembly complete: ${response.clusters.length} clusters, ${response.nodes.length} nodes, ${response.edges.length} edges`);
 	}
 
+	async function uploadDocpack(repoUrl: string, jobId: string): Promise<void> {
+		console.log('Packaging and uploading docpack to R2...');
+		
+		// Parse repo URL to get owner and name
+		const repoInfo = parseRepoUrl(repoUrl);
+		if (!repoInfo) {
+			throw new Error('Invalid repository URL format');
+		}
+		
+		// Create docpack from assembly results
+		const docpack = createDocpack(
+			repoUrl,
+			'main',
+			assemblyResult,
+			symbols
+		);
+		
+		console.log('Docpack created:', {
+			files: docpack.source_map.files.length,
+			symbols: docpack.nodes.symbols.length,
+			clusters: docpack.clusters.clusters.length
+		});
+		
+		// Upload to R2 via API endpoint
+		const response = await fetch('/api/upload-docpack', {
+			method: 'POST',
+			headers: { 'Content-Type': 'application/json' },
+			body: JSON.stringify({
+				repoOwner: repoInfo.owner,
+				repoName: repoInfo.name,
+				docpackData: docpack
+			})
+		});
+		
+		if (!response.ok) {
+			const error = await response.text();
+			throw new Error(`Failed to upload docpack: ${error}`);
+		}
+		
+		const result = await response.json();
+		docpackUrl = result.url;
+		
+		// Clear memory-intensive data now that it's uploaded
+		embeddings.clear();
+		chunks = [];
+		
+		console.log(`Docpack uploaded successfully: ${result.key} (${Math.round(result.size / 1024)}KB)`);
+		
+		// Add upload event
+		events = [...events, {
+			event_type: 'docpack.uploaded.v1',
+			payload: { 
+				key: result.key,
+				size: result.size,
+				url: result.url
+			},
+			timestamp: new Date().toISOString()
+		}];
+	}
+
 	function handleDisconnect() {
 		if (sseClient) {
 			sseClient.close();
@@ -267,11 +334,13 @@
 						<span class="text-sm font-medium text-gray-700">Pipeline Progress</span>
 						<span class="text-sm text-gray-500">
 							{#if pipelineStage === 'ingest'}
-								Stage 1/3: Ingesting files...
+								Stage 1/4: Ingesting files...
 							{:else if pipelineStage === 'embedding'}
-								Stage 2/3: Generating embeddings...
+								Stage 2/4: Generating embeddings...
 							{:else if pipelineStage === 'assembly'}
-								Stage 3/3: Building graph and clusters...
+								Stage 3/4: Building graph and clusters...
+							{:else if pipelineStage === 'uploading'}
+								Stage 4/4: Uploading .docpack to R2...
 							{:else}
 								Complete!
 							{/if}
@@ -281,19 +350,22 @@
 						<div class="flex-1 h-2 bg-gray-200 rounded-full overflow-hidden">
 							<div 
 								class="h-full bg-blue-600 transition-all duration-500"
-								style="width: {pipelineStage === 'ingest' ? '33%' : pipelineStage === 'embedding' ? '66%' : pipelineStage === 'assembly' ? '90%' : '100%'}"
+								style="width: {pipelineStage === 'ingest' ? '25%' : pipelineStage === 'embedding' ? '50%' : pipelineStage === 'assembly' ? '75%' : pipelineStage === 'uploading' ? '95%' : '100%'}"
 							></div>
 						</div>
 					</div>
 					<div class="flex justify-between mt-2 text-xs text-gray-500">
-						<span class="{pipelineStage === 'ingest' || pipelineStage === 'embedding' || pipelineStage === 'assembly' || pipelineStage === 'complete' ? 'text-blue-600 font-medium' : ''}">
-							✓ Ingest
+						<span class="{pipelineStage !== 'ingest' ? 'text-blue-600 font-medium' : ''}">
+							{pipelineStage !== 'ingest' ? '✓' : '○'} Ingest
 						</span>
-						<span class="{pipelineStage === 'embedding' || pipelineStage === 'assembly' || pipelineStage === 'complete' ? 'text-blue-600 font-medium' : ''}">
-							{pipelineStage === 'embedding' || pipelineStage === 'assembly' || pipelineStage === 'complete' ? '✓' : '○'} Embedding
+						<span class="{pipelineStage === 'embedding' || pipelineStage === 'assembly' || pipelineStage === 'uploading' || pipelineStage === 'complete' ? 'text-blue-600 font-medium' : ''}">
+							{pipelineStage === 'embedding' || pipelineStage === 'assembly' || pipelineStage === 'uploading' || pipelineStage === 'complete' ? '✓' : '○'} Embedding
 						</span>
-						<span class="{pipelineStage === 'assembly' || pipelineStage === 'complete' ? 'text-blue-600 font-medium' : ''}">
-							{pipelineStage === 'assembly' || pipelineStage === 'complete' ? '✓' : '○'} Assembly
+						<span class="{pipelineStage === 'assembly' || pipelineStage === 'uploading' || pipelineStage === 'complete' ? 'text-blue-600 font-medium' : ''}">
+							{pipelineStage === 'assembly' || pipelineStage === 'uploading' || pipelineStage === 'complete' ? '✓' : '○'} Assembly
+						</span>
+						<span class="{pipelineStage === 'uploading' || pipelineStage === 'complete' ? 'text-blue-600 font-medium' : ''}">
+							{pipelineStage === 'uploading' || pipelineStage === 'complete' ? '✓' : '○'} Upload
 						</span>
 						<span class="{pipelineStage === 'complete' ? 'text-green-600 font-medium' : ''}">
 							{pipelineStage === 'complete' ? '✓' : '○'} Complete
@@ -308,6 +380,8 @@
 						Collected {chunks.length} chunks, generating embeddings...
 					{:else if pipelineStage === 'assembly'}
 						Creating semantic clusters and call graph...
+					{:else if pipelineStage === 'uploading'}
+						Packaging and uploading .docpack to R2 storage...
 					{/if}
 				</p>
 			</div>
@@ -321,6 +395,50 @@
 
 		{#if events.length > 0}
 			<StatsSummary {events} {isLoading} />
+			
+			<!-- Docpack Download -->
+			{#if docpackUrl && pipelineStage === 'complete'}
+				<div class="bg-green-50 border border-green-200 rounded-lg shadow-md p-6 mb-8">
+					<div class="flex items-start gap-4">
+						<div class="shrink-0">
+							<svg class="w-12 h-12 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+								<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+							</svg>
+						</div>
+						<div class="flex-1">
+							<h3 class="text-lg font-semibold text-green-900 mb-2">✨ Docpack Ready!</h3>
+							<p class="text-green-700 mb-4">
+								Your repository has been analyzed and packaged as a .docpack file.
+								The file has been uploaded to R2 storage and is ready to use.
+							</p>
+							<div class="flex flex-col sm:flex-row gap-3">
+								<a 
+									href={docpackUrl} 
+									download
+									class="inline-flex items-center justify-center px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors font-medium"
+								>
+									<svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+										<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+									</svg>
+									Download .docpack
+								</a>
+								<button 
+									onclick={() => docpackUrl && navigator.clipboard.writeText(docpackUrl)}
+									class="inline-flex items-center justify-center px-4 py-2 bg-white text-green-700 border border-green-300 rounded-md hover:bg-green-50 transition-colors font-medium"
+								>
+									<svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+										<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+									</svg>
+									Copy URL
+								</button>
+							</div>
+							<div class="mt-3 text-sm text-green-600">
+								<code class="bg-green-100 px-2 py-1 rounded">{docpackUrl}</code>
+							</div>
+						</div>
+					</div>
+				</div>
+			{/if}
 			
 			<!-- Assembly Results -->
 			{#if assemblyResult}

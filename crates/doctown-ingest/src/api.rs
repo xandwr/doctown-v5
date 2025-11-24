@@ -267,6 +267,7 @@ pub async fn start_server(config: ServerConfig) -> std::io::Result<()> {
         App::new()
             .wrap(cors)
             .app_data(web::PayloadConfig::new(config.max_body_size))
+            .app_data(web::JsonConfig::default().limit(config.max_body_size))
             .route("/health", web::get().to(health))
             .route("/ingest", web::get().to(ingest_get))
             .route("/ingest", web::post().to(ingest_post))
