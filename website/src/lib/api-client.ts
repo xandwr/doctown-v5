@@ -31,6 +31,7 @@ export interface SymbolMetadata {
 	chunk_ids: string[];
 	calls?: string[];
 	imports?: string[];
+	language?: string;
 }
 
 export interface ChunkWithEmbedding {

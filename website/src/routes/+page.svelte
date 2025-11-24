@@ -85,39 +85,47 @@
 					// Only store important events to avoid memory issues
 					if (eventType?.includes('completed') || eventType?.includes('started') || eventType?.includes('failed')) {
 						console.log('SSE event received:', event);
-						events.push(event);
+						events = [...events, event];
 						// Keep only last 50 events to prevent memory bloat
 						if (events.length > 50) {
-							events.shift();
+							events = events.slice(1);
 						}
 					}
 					
-					// Track chunks (store ID only, not content)
+					// Track chunks (store content for assembly stage)
 					if (eventType === 'ingest.chunk_created.v1') {
-						chunks.push({
+						chunks = [...chunks, {
 							chunk_id: event.payload.chunk_id,
-							content: '' // Don't store content to save memory
-						});
+							content: event.payload.content || '' // Store content for cluster labeling
+						}];
 						
 						// Build symbol metadata if this is a symbol chunk
-							if (event.payload.symbol_id) {
-								const existingSymbol = symbols.find(s => s.symbol_id === event.payload.symbol_id);
-								if (!existingSymbol) {
-									symbols.push({
-										symbol_id: event.payload.symbol_id,
-										name: event.payload.symbol_name || 'unknown',
-										kind: event.payload.symbol_kind || 'unknown',
-										file_path: event.payload.file_path || '',
-										signature: event.payload.signature || '',
-										chunk_ids: [event.payload.chunk_id],
-										calls: event.payload.calls || [],
-										imports: event.payload.imports || []
-									});
-								} else {
-									existingSymbol.chunk_ids.push(event.payload.chunk_id);
-								}
+						if (event.payload.symbol_kind && event.payload.symbol_name) {
+							// Create a unique symbol ID from chunk ID (since symbols don't have separate IDs in events)
+							const symbolId = event.payload.chunk_id;
+							const existingIndex = symbols.findIndex(s => s.symbol_id === symbolId);
+							if (existingIndex === -1) {
+								symbols = [...symbols, {
+									symbol_id: symbolId,
+									name: event.payload.symbol_name,
+									kind: event.payload.symbol_kind,
+									file_path: event.payload.file_path || '',
+									signature: '',  // Not available in chunk_created events
+									chunk_ids: [event.payload.chunk_id],
+									calls: [],  // Not available in chunk_created events
+									imports: [],  // Not available in chunk_created events
+									language: event.payload.language || 'unknown'
+								}];
+							} else {
+								// Update existing symbol's chunk_ids
+								symbols = symbols.map((s, i) => 
+									i === existingIndex 
+										? { ...s, chunk_ids: [...s.chunk_ids, event.payload.chunk_id] }
+										: s
+								);
 							}
 						}
+					}
 						
 						// Complete ingest stage on completion
 						if (eventType === 'ingest.completed.v1') {
@@ -178,10 +186,12 @@
 				chunks: batch
 			});
 			
-			// Store embeddings
+			// Store embeddings (use new Map to trigger reactivity)
+			const newEmbeddings = new Map(embeddings);
 			for (const vector of response.vectors) {
-				embeddings.set(vector.chunk_id, vector.vector);
+				newEmbeddings.set(vector.chunk_id, vector.vector);
 			}
+			embeddings = newEmbeddings;
 			
 			console.log(`Batch ${i + 1}/${batches.length} complete: ${response.vectors.length} vectors`);
 		}
@@ -482,7 +492,7 @@
 					<div>
 						<h3 class="text-lg font-semibold text-gray-900 mb-3">⭐ Most Important Symbols</h3>
 						<div class="space-y-2">
-							{#each assemblyResult.nodes.sort((a: any, b: any) => b.centrality - a.centrality).slice(0, 10) as node}
+							{#each [...assemblyResult.nodes].sort((a: any, b: any) => b.centrality - a.centrality).slice(0, 10) as node}
 								<div class="border border-gray-200 rounded-lg p-3 hover:border-blue-300 transition-colors">
 									<div class="flex items-center justify-between">
 										<div class="flex-1">
