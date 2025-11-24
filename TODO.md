@@ -1118,19 +1118,18 @@ ONNX model and tokenizer is in models/minilm-l6/.
 
 ---
 
-## M3.3: Minimal Docpack Format (`doctown-docpack`)
+## M3.3: Minimal Docpack Format (`doctown-docpack`) ✅
 
-**Note:** Basic .docpack format already implemented in TypeScript (website/src/lib/docpack.ts) 
-for R2 storage. This milestone will create the Rust crate for backend generation.
+**Status:** Complete! Rust implementation created with full test coverage.
 
-### M3.3.1 Crate Setup
-- [ ] Create `crates/doctown-docpack/`
-- [ ] Add dependencies: serde, serde_json, flate2 (gzip)
-- [ ] Set up module structure
-- [ ] Port TypeScript implementation to Rust
+### M3.3.1 Crate Setup ✅
+- [x] Create `crates/doctown-docpack/`
+- [x] Add dependencies: serde, serde_json, flate2, tar, sha2, chrono, thiserror
+- [x] Set up module structure (manifest, nodes, graph, clusters, source_map, writer, reader)
+- [x] Port TypeScript implementation to Rust
 
-### M3.3.2 Manifest
-- [~] Define `Manifest` struct (minimal version) - **Draft in TypeScript**
+### M3.3.2 Manifest ✅
+- [x] Define `Manifest` struct (minimal version)
 - [x] Include: schema_version ("docpack/1.0")
 - [x] Include: docpack_id (SHA-256 of contents)
 - [x] Include: created_at
@@ -1138,57 +1137,66 @@ for R2 storage. This milestone will create the Rust crate for backend generation
 - [x] Include: statistics (file_count, symbol_count, cluster_count, embedding_dimensions)
 - [x] Include: checksum (algorithm, value)
 - [x] Include: optional flags (has_embeddings, has_symbol_contexts)
-- [~] Implement JSON serialization - **Working in TypeScript**
-- [ ] Port to Rust with proper types
-- [ ] [T] Unit test: manifest creation
-- [ ] [T] Snapshot test: manifest JSON
+- [x] Implement JSON serialization
+- [x] Port to Rust with proper types
+- [x] [T] Unit test: manifest creation
+- [x] [T] Unit test: manifest JSON roundtrip
 
-### M3.3.3 Nodes (Symbols + Docs)
-- [~] Define `Nodes` struct - **Draft in TypeScript**
-- [x] Define `Symbol` struct with documentation field - **TypeScript version**
+### M3.3.3 Nodes (Symbols + Docs) ✅
+- [x] Define `Nodes` struct
+- [x] Define `Symbol` struct with documentation field
 - [x] Include: id, name, kind, language, file_path, byte_range
 - [x] Include: signature, calls, called_by, imports
 - [x] Include: cluster_id, centrality
 - [x] Define `Documentation` struct (summary + optional details)
-- [~] Implement JSON serialization - **Working in TypeScript**
-- [ ] Port to Rust
-- [ ] [T] Unit test: nodes creation
-- [ ] [T] Snapshot test: nodes JSON
+- [x] Implement JSON serialization
+- [x] Port to Rust with builder pattern
+- [x] [T] Unit test: nodes creation
+- [x] [T] Unit test: symbol builder pattern
+- [x] [T] Unit test: nodes JSON roundtrip
 
-### M3.3.4 Graph
-- [~] Define `Graph` struct (nodes list, edges list) - **Draft in TypeScript**
-- [x] Define `Edge` struct (from, to, kind) - **TypeScript version**
+### M3.3.4 Graph ✅
+- [x] Define `Graph` struct (nodes list, edges list)
+- [x] Define `Edge` struct (from, to, kind)
 - [x] Include metrics (density, avg_degree)
-- [~] Implement JSON serialization - **Working in TypeScript**
-- [ ] Port to Rust
-- [ ] [T] Unit test: graph creation
-- [ ] [T] Snapshot test: graph JSON
+- [x] Implement automatic metric calculation
+- [x] Implement JSON serialization
+- [x] Port to Rust with helper methods
+- [x] [T] Unit test: graph creation
+- [x] [T] Unit test: edge helpers (calls, imports, contains)
+- [x] [T] Unit test: graph metrics calculation
 
-### M3.3.5 Docpack Writer
-- [ ] Define `DocpackWriter` struct
-- [ ] Implement `write()` method
-- [ ] Create in-memory tar archive
-- [ ] Add manifest.json
-- [ ] Add nodes.json
-- [ ] Add graph.json
-- [ ] Gzip compress the archive
-- [ ] Compute SHA-256 checksum
-- [ ] Return bytes + checksum
-- [ ] [T] Unit test: write docpack
-- [ ] [T] Unit test: checksum is deterministic
+### M3.3.5 Docpack Writer ✅
+- [x] Define `DocpackWriter` struct
+- [x] Implement `write()` method
+- [x] Create in-memory tar archive
+- [x] Add manifest.json
+- [x] Add nodes.json
+- [x] Add graph.json
+- [x] Add clusters.json
+- [x] Add source_map.json
+- [x] Gzip compress the archive
+- [x] Compute SHA-256 checksum
+- [x] Return bytes + checksum
+- [x] [T] Unit test: write docpack
+- [x] [T] Unit test: checksum is deterministic
 
-### M3.3.6 Docpack Reader
-- [ ] Define `DocpackReader` struct
-- [ ] Implement `read()` method
-- [ ] Decompress gzip
-- [ ] Extract tar archive
-- [ ] Parse manifest.json
-- [ ] Verify checksum matches
-- [ ] Parse nodes.json
-- [ ] Parse graph.json
-- [ ] [T] Unit test: read docpack
-- [ ] [T] Unit test: roundtrip (write → read)
-- [ ] [T] Unit test: corrupted docpack rejected
+### M3.3.6 Docpack Reader ✅
+- [x] Define `DocpackReader` struct
+- [x] Implement `read()` method
+- [x] Decompress gzip
+- [x] Extract tar archive
+- [x] Parse manifest.json
+- [x] Verify checksum matches
+- [x] Parse nodes.json
+- [x] Parse graph.json
+- [x] Parse clusters.json
+- [x] Parse source_map.json
+- [x] [T] Unit test: read docpack
+- [x] [T] Unit test: roundtrip (write → read)
+- [x] [T] Unit test: corrupted docpack rejected
+- [x] [T] Integration test: full roundtrip with all components
+- [x] [T] Integration test: minimal docpack
 
 ---
 
