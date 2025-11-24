@@ -1027,26 +1027,28 @@ ONNX model and tokenizer is in models/minilm-l6/.
 
 ---
 
-## M3.2: Generation Worker (`workers/generation/`)
+## M3.2: Generation Worker (`workers/generation/`) ✅
 
-### M3.2.1 Python Project Setup
-- [ ] Create `workers/generation/` directory
-- [ ] Create `pyproject.toml`
-- [ ] Add openai dependency
-- [ ] Add tiktoken
-- [ ] Add FastAPI, pydantic, uvicorn
-- [ ] Set up pytest
-- [ ] [T] Verify dependencies install
+**Status:** Complete! Python worker with OpenAI gpt-5-nano integration for structured documentation generation.
 
-### M3.2.2 Token Counting
-- [ ] Implement token counter for gpt-4o-mini
-- [ ] Implement prompt token estimation
-- [ ] Implement cost calculation ($0.15/1M input, $0.60/1M output)
-- [ ] [T] Unit test: token counting accuracy
-- [ ] [T] Unit test: cost calculation
+### M3.2.1 Python Project Setup ✅
+- [x] Create `workers/generation/` directory
+- [x] Create `pyproject.toml`
+- [x] Add openai dependency
+- [x] Add tiktoken
+- [x] Add FastAPI, pydantic, uvicorn
+- [x] Set up pytest
+- [x] [T] Verify dependencies install
 
-### M3.2.3 Prompt Construction
-- [ ] Define prompt template:
+### M3.2.2 Token Counting ✅
+- [x] Implement token counter for gpt-5-nano (using gpt-4 encoding)
+- [x] Implement prompt token estimation
+- [x] Implement cost calculation ($0.15/1M input, $0.60/1M output)
+- [x] [T] Unit test: token counting accuracy
+- [x] [T] Unit test: cost calculation
+
+### M3.2.3 Prompt Construction ✅
+- [x] Define prompt template:
   ```
   You are documenting a {language} codebase.
 
@@ -1063,33 +1065,33 @@ ONNX model and tokenizer is in models/minilm-l6/.
   Write 1-2 sentences describing what this symbol does.
   Be concise and precise. Focus on purpose, not implementation.
   ```
-- [ ] Implement prompt builder from SymbolContext
-- [ ] Implement prompt truncation if > 2000 tokens
-- [ ] [T] Unit test: prompt construction
-- [ ] [T] Snapshot test: prompt format
+- [x] Implement prompt builder from SymbolContext
+- [x] Implement prompt truncation if > 2000 tokens
+- [x] [T] Unit test: prompt construction
+- [x] [T] Snapshot test: prompt format
 
-### M3.2.4 OpenAI Integration
-- [ ] Implement OpenAI client wrapper
-- [ ] Use gpt-4o-mini model
-- [ ] Implement retry with exponential backoff (3 attempts)
-- [ ] Implement rate limit handling (429 responses)
-- [ ] Track tokens used per request
-- [ ] [T] Unit test with mocked responses
-- [ ] [T] Integration test with real API (gated)
+### M3.2.4 OpenAI Integration ✅
+- [x] Implement OpenAI client wrapper with structured output
+- [x] Use gpt-5-nano model
+- [x] Implement retry with exponential backoff (3 attempts)
+- [x] Implement rate limit handling (429 responses)
+- [x] Track tokens used per request
+- [x] [T] Unit test with mocked responses
+- [x] [T] Integration test with real API (gated)
 
-### M3.2.5 Batch Processing
-- [ ] Implement concurrent symbol documentation (max 10 parallel)
-- [ ] Implement progress tracking
-- [ ] Handle partial failures (continue on individual errors)
-- [ ] Collect all results
-- [ ] [T] Unit test: batch processing
-- [ ] [T] Unit test: partial failure handling
+### M3.2.5 Batch Processing ✅
+- [x] Implement concurrent symbol documentation (max 10 parallel)
+- [x] Implement progress tracking
+- [x] Handle partial failures (continue on individual errors)
+- [x] Collect all results
+- [x] [T] Unit test: batch processing
+- [x] [T] Unit test: partial failure handling
 
-### M3.2.6 Worker HTTP API
-- [ ] Set up FastAPI server
-- [ ] Implement `GET /health` endpoint
-- [ ] Implement `POST /generate` endpoint
-- [ ] Define request schema:
+### M3.2.6 Worker HTTP API ✅
+- [x] Set up FastAPI server
+- [x] Implement `GET /health` endpoint
+- [x] Implement `POST /generate` endpoint
+- [x] Define request schema:
   ```json
   {
     "job_id": "...",
@@ -1098,7 +1100,7 @@ ONNX model and tokenizer is in models/minilm-l6/.
     ]
   }
   ```
-- [ ] Define response schema:
+- [x] Define response schema:
   ```json
   {
     "documented_symbols": [
@@ -1108,13 +1110,13 @@ ONNX model and tokenizer is in models/minilm-l6/.
     "total_cost": 0.002
   }
   ```
-- [ ] [T] Integration test: generate docs via HTTP
+- [x] [T] Integration test: generate docs via HTTP
 
-### M3.2.7 Generation Events
-- [ ] Emit `generation.started.v1`
-- [ ] Emit `generation.symbol_documented.v1` per symbol
-- [ ] Emit `generation.completed.v1` with totals
-- [ ] [T] Unit tests for event payloads
+### M3.2.7 Generation Events ✅
+- [x] Emit `generation.started.v1`
+- [x] Emit `generation.symbol_documented.v1` per symbol
+- [x] Emit `generation.completed.v1` with totals
+- [x] [T] Unit tests for event payloads
 
 ---
 

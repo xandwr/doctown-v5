@@ -171,3 +171,61 @@ export class AssemblyClient {
 		return response.json();
 	}
 }
+
+export interface SymbolInput {
+	symbol_id: string;
+	context: SymbolContext;
+}
+
+export interface GenerateRequest {
+	job_id: string;
+	symbols: SymbolInput[];
+}
+
+export interface DocumentedSymbol {
+	symbol_id: string;
+	summary: string;
+	tokens_used: number;
+}
+
+export interface GenerateResponse {
+	documented_symbols: DocumentedSymbol[];
+	total_tokens: number;
+	total_cost: number;
+}
+
+/**
+ * Client for the generation worker API
+ */
+export class GenerationClient {
+	private baseUrl: string;
+
+	constructor(baseUrl: string) {
+		this.baseUrl = baseUrl;
+	}
+
+	async health(): Promise<{ status: string; model: string; ready: boolean }> {
+		const response = await fetch(`${this.baseUrl}/health`);
+		if (!response.ok) {
+			throw new Error(`Generation worker health check failed: ${response.statusText}`);
+		}
+		return response.json();
+	}
+
+	async generate(request: GenerateRequest): Promise<GenerateResponse> {
+		const response = await fetch(`${this.baseUrl}/generate`, {
+			method: 'POST',
+			headers: {
+				'Content-Type': 'application/json'
+			},
+			body: JSON.stringify(request)
+		});
+
+		if (!response.ok) {
+			const error = await response.text();
+			throw new Error(`Generation request failed: ${error}`);
+		}
+
+		return response.json();
+	}
+}
