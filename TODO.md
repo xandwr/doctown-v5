@@ -1200,38 +1200,44 @@ ONNX model and tokenizer is in models/minilm-l6/.
 
 ---
 
-## M3.4: Packer Worker (Minimal) (`doctown-packer`)
+## M3.4: Packer Worker (Minimal) ✅ (`doctown-assembly/packer`)
 
-### M3.4.1 Crate Setup
-- [ ] Create `crates/doctown-packer/`
-- [ ] Add doctown-docpack dependency
-- [ ] Set up HTTP server
+> **Note**: Implemented as integrated module in `doctown-assembly` crate rather than separate crate.
+> This architectural decision makes sense since packing is the final step of assembly.
 
-### M3.4.2 Artifact Collection
-- [ ] Accept symbols with documentation
-- [ ] Accept graph structure
-- [ ] Accept job metadata
-- [ ] Validate all required data present
-- [ ] [T] Unit test: validation
+### M3.4.1 Crate Setup ✅
+- [x] ~~Create `crates/doctown-packer/`~~ Integrated into `doctown-assembly`
+- [x] Add doctown-docpack dependency
+- [x] Set up HTTP server (shared with assembly-server)
 
-### M3.4.3 Docpack Assembly
-- [ ] Build manifest from metadata
-- [ ] Build nodes from symbols + docs
-- [ ] Build graph from edges
-- [ ] Call DocpackWriter
-- [ ] [T] Unit test: assembly
+### M3.4.2 Artifact Collection ✅
+- [x] Accept symbols with documentation
+- [x] Accept graph structure
+- [x] Accept job metadata
+- [x] Validate all required data present
+- [x] [T] Unit test: validation (`test_artifact_collection`)
 
-### M3.4.4 Packer Worker API
-- [ ] Set up Actix-web server
-- [ ] Implement `GET /health`
-- [ ] Implement `POST /pack`
-- [ ] Return docpack bytes + metadata
-- [ ] [T] Integration test: pack via HTTP
+### M3.4.3 Docpack Assembly ✅
+- [x] Build manifest from metadata
+- [x] Build nodes from symbols + docs
+- [x] Build graph from edges
+- [x] Call DocpackWriter
+- [x] [T] Unit test: assembly (`test_full_assembly`, `test_reproducibility`)
 
-### M3.4.5 Packer Events
+### M3.4.4 Packer Worker API ✅
+- [x] Set up Actix-web server (integrated with assembly-server)
+- [x] Implement `GET /health` (shared endpoint)
+- [x] Implement `POST /pack`
+- [x] Return docpack bytes + metadata
+- [ ] [T] Integration test: pack via HTTP (TODO: add HTTP test similar to assembly test)
+
+### M3.4.5 Packer Events ⚠️ (Deferred)
 - [ ] Emit `pack.started.v1`
 - [ ] Emit `pack.completed.v1`
 - [ ] [T] Unit tests for event payloads
+
+> **Note**: Packer events deferred - can be added later for observability if needed.
+> Core packing functionality is complete and working.
 
 ---
 
