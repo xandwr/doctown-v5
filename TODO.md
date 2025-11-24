@@ -1380,24 +1380,24 @@ Includes clusters and source_map. Embeddings stored separately in R2 for now.
 ## M4.2: Packer Updates (`doctown-packer`)
 
 ### M4.2.1 Artifact Collection
-- [ ] Accept clusters from assembly
-- [ ] Accept source map from ingest
-- [ ] Accept embeddings (optional)
-- [ ] Accept symbol contexts (optional)
-- [ ] [T] Unit test: collection
+- [x] Accept clusters from assembly
+- [x] Accept source map from ingest
+- [x] Accept embeddings (optional)
+- [x] Accept symbol contexts (optional)
+- [x] [T] Unit test: collection
 
 ### M4.2.2 Full Docpack Assembly
-- [ ] Build all artifacts
-- [ ] Compute content-addressed docpack_id
-- [ ] Include embeddings if requested
-- [ ] Include symbol contexts if requested
-- [ ] [T] Unit test: full assembly
+- [x] Build all artifacts
+- [x] Compute content-addressed docpack_id
+- [x] Include embeddings if requested
+- [x] Include symbol contexts if requested
+- [x] [T] Unit test: full assembly
 
 ### M4.2.3 Reproducibility
-- [ ] Ensure same inputs → same checksum
-- [ ] Sort all JSON keys
-- [ ] Use consistent float formatting
-- [ ] [T] Unit test: reproducibility
+- [x] Ensure same inputs → same checksum
+- [x] Sort all JSON keys
+- [x] Use consistent float formatting
+- [x] [T] Unit test: reproducibility
 
 ---
 

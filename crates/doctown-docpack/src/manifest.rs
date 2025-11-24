@@ -89,6 +89,46 @@ impl Manifest {
         }
     }
 
+    /// Create a new manifest with a deterministic timestamp (for testing/reproducibility)
+    pub fn new_deterministic(
+        repo_url: String,
+        git_ref: String,
+        commit_hash: Option<String>,
+        file_count: usize,
+        symbol_count: usize,
+        cluster_count: usize,
+        created_at: String,
+    ) -> Self {
+        Self {
+            schema_version: "docpack/1.0".to_string(),
+            docpack_id: String::new(),
+            created_at,
+            generator: Generator {
+                version: "doctown-packer/1.0.0".to_string(),
+                pipeline_version: "v5.0".to_string(),
+            },
+            source: Source {
+                repo_url,
+                git_ref,
+                commit_hash,
+            },
+            statistics: Statistics {
+                file_count,
+                symbol_count,
+                cluster_count,
+                embedding_dimensions: 384,
+            },
+            checksum: Checksum {
+                algorithm: "sha256".to_string(),
+                value: String::new(),
+            },
+            optional: OptionalFeatures {
+                has_embeddings: false,
+                has_symbol_contexts: false,
+            },
+        }
+    }
+
     /// Serialize to JSON string
     pub fn to_json(&self) -> Result<String, serde_json::Error> {
         serde_json::to_string_pretty(self)

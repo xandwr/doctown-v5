@@ -6,15 +6,18 @@
 //! - Graph construction (calls, imports, similarity edges)
 //! - Graph metrics (centrality, density)
 //! - Symbol context generation for LLM documentation
+//! - Docpack packing (assembling complete .docpack files)
 
 pub mod cluster;
 pub mod graph;
 pub mod label;
 pub mod context;
 pub mod api;
+pub mod packer;
 
 pub use cluster::Clusterer;
 pub use graph::{Graph, Node, Edge, EdgeKind, GraphBuilder, SymbolData};
 pub use label::ClusterLabeler;
 pub use context::{SymbolContext, ContextGenerator};
 pub use api::{start_server, AssembleRequest, AssembleResponse};
+pub use packer::{Packer, PackRequest, PackResponse, SourceFileInfo, ChunkInfo, EmbeddingData};

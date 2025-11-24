@@ -17,6 +17,7 @@ use std::sync::Arc;
 use std::time::Instant;
 
 use crate::{cluster::Clusterer, context::ContextGenerator, graph::GraphBuilder, label::ClusterLabeler, EdgeKind, SymbolContext};
+use crate::packer::{Packer, PackRequest};
 
 /// Request schema for the /assemble endpoint.
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -518,8 +519,37 @@ pub async fn start_server(host: &str, port: u16) -> std::io::Result<()> {
             .wrap(cors)
             .service(health)
             .service(assemble)
+            .service(pack)
     })
     .bind((host, port))?
     .run()
     .await
+}
+
+/// Pack endpoint: Assembles a complete .docpack file from assembly results and source data
+#[post("/pack")]
+async fn pack(req: Json<PackRequest>) -> impl Responder {
+    info!("Packing docpack for repo {}", req.repo_url);
+    
+    let packer = Packer::new();
+    
+    match packer.pack(req.into_inner()) {
+        Ok(response) => {
+            info!(
+                "Successfully packed docpack: {} ({} bytes, {} files, {} symbols, {} clusters)",
+                response.docpack_id,
+                response.docpack_bytes.len(),
+                response.statistics.file_count,
+                response.statistics.symbol_count,
+                response.statistics.cluster_count
+            );
+            HttpResponse::Ok().json(response)
+        }
+        Err(e) => {
+            error!("Failed to pack docpack: {}", e);
+            HttpResponse::InternalServerError().json(serde_json::json!({
+                "error": format!("Packing failed: {}", e)
+            }))
+        }
+    }
 }
