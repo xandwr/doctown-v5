@@ -140,8 +140,8 @@
 						onclick={() => toggleFile(file.path)}
 						class="w-full flex items-center justify-between px-4 py-3 hover:bg-gray-50 transition-colors"
 					>
-						<div class="flex items-center gap-3 flex-1 min-w-0">
-							<span class="text-2xl flex-shrink-0">{getLanguageIcon(file.language)}</span>
+					<div class="flex items-center gap-3 flex-1 min-w-0">
+						<span class="text-2xl shrink-0">{getLanguageIcon(file.language)}</span>
 							<div class="flex-1 min-w-0 text-left">
 								<div class="font-mono text-sm font-medium text-gray-900 truncate">
 									{file.path}
@@ -151,10 +151,10 @@
 									{file.chunks.length === 1 ? 'symbol' : 'symbols'}
 								</div>
 							</div>
-						</div>
-						<span class="text-gray-400 flex-shrink-0 ml-2">
-							{expandedFiles.has(file.path) ? '▼' : '▶'}
-						</span>
+					</div>
+					<span class="text-gray-400 shrink-0 ml-2">
+						{expandedFiles.has(file.path) ? '▼' : '▶'}
+					</span>
 					</button>
 
 					<!-- Symbol list (collapsible) -->
@@ -168,21 +168,21 @@
 										<div
 											class="flex items-center gap-3 py-2 px-3 bg-white rounded hover:bg-gray-100 transition-colors"
 										>
-											<span
-												class={getSymbolColor(chunk.kind) +
-													' font-bold text-sm w-6 text-center flex-shrink-0'}
-											>
+										<span
+											class={getSymbolColor(chunk.kind) +
+												' font-bold text-sm w-6 text-center shrink-0'}
+										>
 												{getSymbolIcon(chunk.kind)}
 											</span>
 											<div class="flex-1 min-w-0">
 												<div class="font-mono text-sm font-medium text-gray-900 truncate">
 													{chunk.name}
 												</div>
-												<div class="text-xs text-gray-500 capitalize">{chunk.kind}</div>
-											</div>
-											<span class="text-xs text-gray-400 font-mono flex-shrink-0">
-												{chunk.chunkId.slice(0, 12)}...
-											</span>
+											<div class="text-xs text-gray-500 capitalize">{chunk.kind}</div>
+										</div>
+										<span class="text-xs text-gray-400 font-mono shrink-0">
+											{chunk.chunkId.slice(0, 12)}...
+										</span>
 										</div>
 									{/each}
 								</div>

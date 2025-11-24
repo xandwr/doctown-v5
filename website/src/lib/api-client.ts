@@ -34,6 +34,21 @@ export interface SymbolMetadata {
 	language?: string;
 }
 
+export interface SymbolContext {
+	symbol_id: string;
+	name: string;
+	kind: string;
+	language: string;
+	file_path: string;
+	signature: string;
+	calls: string[];
+	called_by: string[];
+	imports: string[];
+	related_symbols: string[];
+	cluster_label: string | null;
+	centrality: number;
+}
+
 export interface ChunkWithEmbedding {
 	chunk_id: string;
 	vector: number[];
@@ -80,6 +95,7 @@ export interface AssembleResponse {
 	clusters: ClusterInfo[];
 	nodes: NodeInfo[];
 	edges: EdgeInfo[];
+	symbol_contexts: SymbolContext[];
 	stats: AssemblyStats;
 	events: any[];
 }

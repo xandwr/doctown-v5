@@ -1383,7 +1383,7 @@ Includes clusters and source_map. Embeddings stored separately in R2 for now.
 
 ---
 
-## M4.2: Packer Updates (`doctown-packer`)
+## M4.2: Packer Updates (`doctown-assembly/packer`)
 
 ### M4.2.1 Artifact Collection
 - [x] Accept clusters from assembly

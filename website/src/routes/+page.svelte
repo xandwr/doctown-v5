@@ -4,20 +4,22 @@
 	import StatsSummary from '$lib/components/StatsSummary.svelte';
 	import FileTree from '$lib/components/FileTree.svelte';
 	import SymbolList from '$lib/components/SymbolList.svelte';
+	import EnhancedSymbolList from '$lib/components/EnhancedSymbolList.svelte';
 	import { SSEClient } from '$lib/sse-client';
-	import { EmbeddingClient, AssemblyClient, type Chunk, type SymbolMetadata, type ChunkWithEmbedding } from '$lib/api-client';
+	import { EmbeddingClient, AssemblyClient, type Chunk, type SymbolMetadata, type ChunkWithEmbedding, type SymbolContext } from '$lib/api-client';
 	import { createDocpack, parseRepoUrl } from '$lib/docpack';
 
 	let isLoading = $state(false);
 	let events = $state<any[]>([]);
 	let errorMessage = $state<string | null>(null);
 	let sseClient: SSEClient | null = null;
-	let activeView = $state<'tree' | 'list'>('tree');
+	let activeView = $state<'tree' | 'list' | 'contexts'>('tree');
 	let pipelineStage = $state<'ingest' | 'embedding' | 'assembly' | 'uploading' | 'complete'>('ingest');
 	
 	// Pipeline data storage
 	let chunks = $state<Chunk[]>([]);
 	let symbols = $state<SymbolMetadata[]>([]);
+	let symbolContexts = $state<SymbolContext[]>([]);
 	let embeddings = $state<Map<string, number[]>>(new Map());
 	let assemblyResult = $state<any>(null);
 	let docpackUrl = $state<string | null>(null);
@@ -38,6 +40,7 @@
 		pipelineStage = 'ingest';
 		chunks = [];
 		symbols = [];
+		symbolContexts = [];
 		embeddings = new Map();
 		assemblyResult = null;
 		docpackUrl = null;
@@ -238,10 +241,13 @@
 		// Store assembly result
 		assemblyResult = response;
 		
+		// Extract rich symbol contexts from assembly response
+		symbolContexts = response.symbol_contexts || [];
+		
 		// Add assembly events to event log
 		events = [...events, ...response.events];
 		
-		console.log(`Assembly complete: ${response.clusters.length} clusters, ${response.nodes.length} nodes, ${response.edges.length} edges`);
+		console.log(`Assembly complete: ${response.clusters.length} clusters, ${response.nodes.length} nodes, ${response.edges.length} edges, ${symbolContexts.length} symbol contexts`);
 	}
 
 	async function uploadDocpack(repoUrl: string, jobId: string): Promise<void> {
@@ -455,7 +461,7 @@
 				<div class="bg-white rounded-lg shadow-md p-8 mb-8">
 					<h2 class="text-xl font-semibold text-gray-900 mb-4">📊 Assembly Results</h2>
 					
-					<div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+					<div class="grid grid-cols-2 md:grid-cols-5 gap-4 mb-6">
 						<div class="bg-blue-50 rounded-lg p-4">
 							<div class="text-sm text-blue-600 font-medium mb-1">Clusters</div>
 							<div class="text-2xl font-bold text-blue-900">{assemblyResult.clusters.length}</div>
@@ -468,20 +474,69 @@
 							<div class="text-sm text-purple-600 font-medium mb-1">Edges</div>
 							<div class="text-2xl font-bold text-purple-900">{assemblyResult.edges.length}</div>
 						</div>
+						<div class="bg-indigo-50 rounded-lg p-4">
+							<div class="text-sm text-indigo-600 font-medium mb-1">Symbols</div>
+							<div class="text-2xl font-bold text-indigo-900">{symbolContexts.length}</div>
+						</div>
+						<div class="bg-orange-50 rounded-lg p-4">
+							<div class="text-sm text-orange-600 font-medium mb-1">Avg Centrality</div>
+							<div class="text-2xl font-bold text-orange-900">
+								{symbolContexts.length > 0 ? (symbolContexts.reduce((sum, s) => sum + s.centrality, 0) / symbolContexts.length * 100).toFixed(1) : 0}%
+							</div>
+						</div>
 					</div>
+					
+					<!-- Edge Type Breakdown -->
+					{#if assemblyResult.edges.length > 0}
+						{@const edgesByType = assemblyResult.edges.reduce((acc: any, edge: any) => {
+							acc[edge.kind] = (acc[edge.kind] || 0) + 1;
+							return acc;
+						}, {})}
+						<div class="mb-6 bg-gray-50 rounded-lg p-4 border border-gray-200">
+							<h3 class="text-sm font-semibold text-gray-700 mb-3">Edge Type Breakdown</h3>
+							<div class="grid grid-cols-2 md:grid-cols-3 gap-3">
+								{#each Object.entries(edgesByType) as [kind, count]}
+									<div class="flex items-center justify-between bg-white px-3 py-2 rounded border border-gray-200">
+										<span class="text-sm font-medium text-gray-700 capitalize">{kind}</span>
+										<span class="text-sm font-bold text-gray-900">{count}</span>
+									</div>
+								{/each}
+							</div>
+						</div>
+					{/if}
 					
 					<!-- Clusters -->
 					<div class="mb-6">
 						<h3 class="text-lg font-semibold text-gray-900 mb-3">🏷️ Semantic Clusters</h3>
-						<div class="space-y-2">
+						<div class="space-y-3">
 							{#each assemblyResult.clusters as cluster}
 								<div class="border border-gray-200 rounded-lg p-4 hover:border-blue-300 transition-colors">
-									<div class="flex items-center justify-between mb-2">
+									<div class="flex items-center justify-between mb-3">
 										<span class="font-medium text-gray-900">{cluster.label}</span>
 										<span class="text-sm text-gray-500">{cluster.members.length} symbols</span>
 									</div>
-									<div class="text-sm text-gray-600">
-										Cluster ID: <code class="text-xs bg-gray-100 px-1 py-0.5 rounded">{cluster.cluster_id}</code>
+									
+									<!-- Member symbols -->
+									{#if cluster.members.length > 0}
+										{@const memberContexts = symbolContexts.filter(s => cluster.members.includes(s.symbol_id))}
+										{#if memberContexts.length > 0}
+											<div class="flex flex-wrap gap-2 mt-2">
+												{#each memberContexts.slice(0, 8) as member}
+													<span class="text-xs bg-blue-50 text-blue-700 px-2 py-1 rounded font-mono border border-blue-200">
+														{member.name}
+													</span>
+												{/each}
+												{#if memberContexts.length > 8}
+													<span class="text-xs text-gray-500 px-2 py-1">
+														+{memberContexts.length - 8} more
+													</span>
+												{/if}
+											</div>
+										{/if}
+									{/if}
+									
+									<div class="text-xs text-gray-500 mt-2">
+										ID: <code class="bg-gray-100 px-1 py-0.5 rounded">{cluster.cluster_id}</code>
 									</div>
 								</div>
 							{/each}
@@ -491,21 +546,45 @@
 					<!-- Top nodes by centrality -->
 					<div>
 						<h3 class="text-lg font-semibold text-gray-900 mb-3">⭐ Most Important Symbols</h3>
+						<p class="text-sm text-gray-600 mb-4">
+							Symbols ranked by centrality (degree-based) - high centrality indicates symbols that are frequently called or referenced
+						</p>
 						<div class="space-y-2">
-							{#each [...assemblyResult.nodes].sort((a: any, b: any) => b.centrality - a.centrality).slice(0, 10) as node}
-								<div class="border border-gray-200 rounded-lg p-3 hover:border-blue-300 transition-colors">
-									<div class="flex items-center justify-between">
-										<div class="flex-1">
-											<span class="font-medium text-gray-900">{node.metadata.name || node.id}</span>
-											<span class="text-sm text-gray-500 ml-2">({node.metadata.kind || 'unknown'})</span>
+							{#each symbolContexts.toSorted((a, b) => b.centrality - a.centrality).slice(0, 10) as symbol, index}
+								<div class="border border-gray-200 rounded-lg p-4 hover:border-blue-300 transition-colors">
+									<div class="flex items-start gap-3">
+										<div class="text-lg font-bold text-gray-400 min-w-8">
+											#{index + 1}
 										</div>
-										<div class="flex items-center space-x-3">
-											<span class="text-xs text-gray-500">
-												Centrality: {node.centrality.toFixed(3)}
-											</span>
-											<span class="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded">
-												{assemblyResult.clusters.find((c: any) => c.cluster_id === node.cluster_id)?.label || 'Unknown cluster'}
-											</span>
+										<div class="flex-1">
+											<div class="flex items-center gap-2 mb-2">
+												<span class="font-mono font-semibold text-gray-900">{symbol.name}</span>
+												<span class="text-xs bg-gray-100 text-gray-700 px-2 py-1 rounded capitalize">
+													{symbol.kind}
+												</span>
+												{#if symbol.cluster_label}
+													<span class="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded">
+														{symbol.cluster_label}
+													</span>
+												{/if}
+											</div>
+											<div class="text-xs text-gray-600 font-mono mb-2">
+												{symbol.file_path}
+											</div>
+											<div class="flex items-center gap-4 text-xs">
+												<span class="font-semibold text-gray-700">
+													Centrality: <span class="text-blue-600">{(symbol.centrality * 100).toFixed(1)}%</span>
+												</span>
+												{#if symbol.calls.length > 0}
+													<span class="text-purple-600">→ {symbol.calls.length} calls</span>
+												{/if}
+												{#if symbol.called_by.length > 0}
+													<span class="text-blue-600">← {symbol.called_by.length} callers</span>
+												{/if}
+												{#if symbol.imports.length > 0}
+													<span class="text-green-600">📦 {symbol.imports.length} imports</span>
+												{/if}
+											</div>
 										</div>
 									</div>
 								</div>
@@ -536,14 +615,25 @@
 						>
 							📋 Symbol List
 						</button>
+						<button
+							onclick={() => (activeView = 'contexts')}
+							class="flex-1 px-4 py-3 text-sm font-medium transition-colors {activeView === 'contexts'
+								? 'bg-white text-blue-600 border-b-2 border-blue-600'
+								: 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'}"
+							disabled={symbolContexts.length === 0}
+						>
+							🔗 Symbol Contexts {#if symbolContexts.length > 0}<span class="text-xs ml-1 bg-blue-100 text-blue-700 px-1.5 py-0.5 rounded">{symbolContexts.length}</span>{/if}
+						</button>
 					</div>
 
 					<!-- View content -->
 					<div>
 						{#if activeView === 'tree'}
 							<FileTree {events} />
-						{:else}
+						{:else if activeView === 'list'}
 							<SymbolList {events} />
+						{:else if activeView === 'contexts'}
+							<EnhancedSymbolList {symbolContexts} />
 						{/if}
 					</div>
 				</div>
