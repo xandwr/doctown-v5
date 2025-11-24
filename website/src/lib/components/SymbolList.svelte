@@ -7,6 +7,7 @@
 
 	// Organize symbols from events
 	const symbolData = $derived.by(() => {
+		console.log('[SymbolList] Processing events:', events.length);
 		const symbols: Array<{
 			name: string;
 			kind: string;
@@ -304,5 +305,10 @@
 				{/if}
 			</div>
 		</div>
+	</div>
+{:else}
+	<div class="px-4 py-12 text-center text-gray-500">
+		<p class="text-sm">No symbols detected yet.</p>
+		<p class="text-xs mt-2">Events received: {events.length}</p>
 	</div>
 {/if}

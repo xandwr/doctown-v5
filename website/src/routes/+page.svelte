@@ -85,15 +85,9 @@
 				onMessage: (event: any) => {
 					const eventType = event.event_type;
 					
-					// Only store important events to avoid memory issues
-					if (eventType?.includes('completed') || eventType?.includes('started') || eventType?.includes('failed')) {
-						console.log('SSE event received:', event);
-						events = [...events, event];
-						// Keep only last 50 events to prevent memory bloat
-						if (events.length > 50) {
-							events = events.slice(1);
-						}
-					}
+					// Store all events
+					console.log('SSE event received:', event);
+					events = [...events, event];
 					
 					// Track chunks (store content for assembly stage)
 					if (eventType === 'ingest.chunk_created.v1') {

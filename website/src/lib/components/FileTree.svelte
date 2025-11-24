@@ -7,6 +7,9 @@
 
 	// Organize events into file tree structure
 	const fileData = $derived.by(() => {
+		console.log('[FileTree] Processing events:', events.length);
+		const eventTypes = events.map(e => e.event_type || 'MISSING');
+		console.log('[FileTree] Event types:', eventTypes);
 		const files: Map<
 			string,
 			{
@@ -21,6 +24,7 @@
 			const payload = event.payload || {};
 
 			if (eventType.includes('file_detected')) {
+				console.log('[FileTree] Found file_detected event:', payload.file_path);
 				const path = payload.file_path || '';
 				if (!files.has(path)) {
 					files.set(path, {
@@ -30,6 +34,7 @@
 					});
 				}
 			} else if (eventType.includes('chunk_created')) {
+				console.log('[FileTree] Found chunk_created event:', payload.file_path, payload.symbol_name);
 				const path = payload.file_path || '';
 				const file = files.get(path);
 				if (file) {
@@ -42,7 +47,9 @@
 			}
 		}
 
-		return Array.from(files.values()).sort((a, b) => a.path.localeCompare(b.path));
+		const result = Array.from(files.values()).sort((a, b) => a.path.localeCompare(b.path));
+		console.log('[FileTree] Found files:', result.length);
+		return result;
 	});
 
 	let expandedFiles = $state(new Set<string>());
@@ -121,8 +128,8 @@
 	}
 </script>
 
+<div class="overflow-hidden">
 {#if fileData.length > 0}
-	<div class="overflow-hidden">
 		<div class="bg-gray-100 px-4 py-3 border-b border-gray-200">
 			<div class="flex items-center justify-between">
 				<div>
@@ -227,5 +234,10 @@
 				</div>
 			</div>
 		</div>
+{:else}
+	<div class="px-4 py-12 text-center text-gray-500">
+		<p class="text-sm">No files detected yet.</p>
+		<p class="text-xs mt-2">Events received: {events.length}</p>
 	</div>
 {/if}
+</div>
