@@ -2,39 +2,75 @@
 
 Intelligent code documentation and understanding platform.
 
-## Quick Start
+## Architecture
 
-Start the complete development environment:
+Doctown uses a **serverless-first architecture** for cost efficiency:
 
-```bash
-./dev.sh
+```
+                     ┌─────────────────┐
+                     │   Website       │
+                     │   (Vercel)      │
+                     └────────┬────────┘
+                              │
+              ┌───────────────┴───────────────┐
+              │                               │
+              ▼                               ▼
+┌─────────────────────────┐     ┌─────────────────────────┐
+│   Builder (Serverless)  │     │  Embedder (Serverless)  │
+│   RunPod CPU            │     │  RunPod GPU             │
+│                         │     │                         │
+│   • GitHub fetch        │     │  • ONNX MiniLM-L6      │
+│   • Tree-sitter parsing │     │  • Batch embedding      │
+│   • Symbol extraction   │────▶│  • 384-dim vectors      │
+│   • Chunking            │     │                         │
+│   • Graph assembly      │◀────│                         │
+│   • Docpack packaging   │     └─────────────────────────┘
+└────────────┬────────────┘
+             │
+             ▼
+┌─────────────────────────┐
+│   Cloudflare R2         │
+│   .docpack storage      │
+└─────────────────────────┘
 ```
 
-This will start:
-- Backend API server on http://127.0.0.1:3000
-- Frontend dev server on http://localhost:5173
+### Pipeline Flow
 
-For detailed setup instructions, see [DEV_SETUP.md](DEV_SETUP.md).
+1. **Ingest** - Builder fetches repo, parses code, extracts symbols, creates chunks
+2. **Embed** - Embedder generates 384-dim vectors for all chunks (GPU-accelerated)
+3. **Assemble** - Builder clusters, labels, builds graph, packages .docpack
+4. **Upload** - .docpack uploaded to R2 for download
 
-## Stopping Services
+## Project Structure
 
-```bash
-./stop.sh
+```
+crates/
+├── doctown-common/     # Shared types, IDs, errors
+├── doctown-events/     # Event system for streaming
+├── doctown-ingest/     # Parsing, symbols, chunking, GitHub client
+├── doctown-assembly/   # Clustering, graph building, docpack packing
+└── doctown-docpack/    # Docpack format utilities
+
+workers/
+├── embedding/          # ONNX embedding worker (Python/FastAPI)
+└── generation/         # LLM doc generation worker (Python/FastAPI)
+
+builder/                # Main API server entry point (Rust/Actix)
+website/                # SvelteKit frontend
+specs/                  # Architecture and format specifications
+models/                 # ONNX model files
 ```
 
-Or press `Ctrl+C` when running `dev.sh`.
+## Local Development
 
-## Roadmap Overview
+```bash
+./dev.sh        # Start backend + frontend
+./stop.sh       # Stop services
+```
 
-- [TODO.md](TODO.md)
+## Supported Languages
 
-|Milestone|User Feels|What Ships|
-|---------|----------|----------|
-|M1|"It understands my code"|Ingest worker, AST parsing, file tree UI
-|M2|"It understands my code semantically"|Embeddings, clusters, graph explorer
-|M3|"It explains my code"|LLM summaries, downloadable .docpack
-|M4|"It integrates into workflows"|Full docpack spec, stable format
-|M5|"It scales to real usage"|Coordinator, queues, distributed workers
-|M6|"It's a real business"|Auth, payments, library, private repos
-
----
+- Rust
+- Python
+- TypeScript/JavaScript
+- Go
