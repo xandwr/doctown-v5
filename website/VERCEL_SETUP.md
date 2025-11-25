@@ -11,7 +11,7 @@ Go to your Vercel project → Settings → Environment Variables and add:
 ```
 VITE_EMBEDDING_API_URL=https://YOUR-POD-ID-8000.proxy.runpod.net
 VITE_INGEST_API_URL=https://YOUR-POD-ID-3000.proxy.runpod.net
-VITE_ASSEMBLY_API_URL=https://YOUR-POD-ID-3001.proxy.runpod.net
+VITE_ASSEMBLY_API_URL=https://YOUR-POD-ID-8002.proxy.runpod.net
 ```
 
 **To get your RunPod URLs:**

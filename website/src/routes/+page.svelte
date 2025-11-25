@@ -48,7 +48,7 @@
 
 		const apiUrl = import.meta.env.VITE_INGEST_API_URL || 'http://localhost:3000';
 		const embeddingUrl = import.meta.env.VITE_EMBEDDING_API_URL || 'http://localhost:8000';
-		const assemblyUrl = import.meta.env.VITE_ASSEMBLY_API_URL || 'http://localhost:3001';
+		const assemblyUrl = import.meta.env.VITE_ASSEMBLY_API_URL || 'http://localhost:8002';
 		const jobId = `job_${Date.now()}`;
 
 		try {
@@ -164,8 +164,8 @@
 			timestamp: new Date().toISOString()
 		}];
 		
-		// Batch chunks (max 256 per batch as configured in worker)
-		const batchSize = 256;
+		// Batch chunks (reduced to 64 to prevent memory issues on RunPod)
+		const batchSize = 64;
 		const batches: Chunk[][] = [];
 		for (let i = 0; i < chunks.length; i += batchSize) {
 			batches.push(chunks.slice(i, i + batchSize));
@@ -173,24 +173,45 @@
 		
 		console.log(`Processing ${batches.length} batches of embeddings`);
 		
-		// Process batches sequentially to avoid overwhelming the worker
+		// Process batches sequentially with retry logic
 		for (let i = 0; i < batches.length; i++) {
 			const batch = batches[i];
 			const batchId = `${jobId}_batch_${i}`;
 			
-			const response = await embeddingClient.embed({
-				batch_id: batchId,
-				chunks: batch
-			});
+			let retries = 3;
+			let lastError: Error | null = null;
 			
-			// Store embeddings (use new Map to trigger reactivity)
-			const newEmbeddings = new Map(embeddings);
-			for (const vector of response.vectors) {
-				newEmbeddings.set(vector.chunk_id, vector.vector);
+			while (retries > 0) {
+				try {
+					const response = await embeddingClient.embed({
+						batch_id: batchId,
+						chunks: batch
+					});
+					
+					// Store embeddings (use new Map to trigger reactivity)
+					const newEmbeddings = new Map(embeddings);
+					for (const vector of response.vectors) {
+						newEmbeddings.set(vector.chunk_id, vector.vector);
+					}
+					embeddings = newEmbeddings;
+					
+					console.log(`Batch ${i + 1}/${batches.length} complete: ${response.vectors.length} vectors`);
+					break; // Success, exit retry loop
+				} catch (error: any) {
+					lastError = error;
+					retries--;
+					console.warn(`Embedding batch ${i + 1} failed, ${retries} retries left:`, error.message);
+					
+					if (retries > 0) {
+						// Wait before retry (exponential backoff)
+						await new Promise(resolve => setTimeout(resolve, 1000 * (3 - retries)));
+					}
+				}
 			}
-			embeddings = newEmbeddings;
 			
-			console.log(`Batch ${i + 1}/${batches.length} complete: ${response.vectors.length} vectors`);
+			if (retries === 0 && lastError) {
+				throw new Error(`Embedding failed after 3 retries: ${lastError.message}`);
+			}
 		}
 		
 		// Add embedding completed event

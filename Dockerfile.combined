@@ -43,7 +43,9 @@ COPY workers/generation/pyproject.toml /app/generation/
 COPY models/minilm-l6/ /app/models/minilm-l6/
 
 # Install Python dependencies for both workers
+# Install psutil first (requires build tools) then install both workers
 RUN pip install --no-cache-dir --upgrade pip && \
+    pip install --no-cache-dir psutil && \
     cd /app/embedding && \
     pip install --no-cache-dir -e . && \
     cd /app/generation && \

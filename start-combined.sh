@@ -37,6 +37,19 @@ python3 -m uvicorn app.main:app --host 0.0.0.0 --port 8000 &
 EMBEDDING_PID=$!
 echo "Embedding Worker PID: $EMBEDDING_PID"
 
+# Wait for embedding worker to be ready (model loading takes time)
+echo "Waiting for Embedding Worker to be ready..."
+for i in {1..30}; do
+    if curl -s http://localhost:8000/health > /dev/null 2>&1; then
+        echo "Embedding Worker is ready!"
+        break
+    fi
+    if [ $i -eq 30 ]; then
+        echo "WARNING: Embedding Worker not responding after 30 seconds"
+    fi
+    sleep 1
+done
+
 # Start generation worker in background
 echo "Starting Generation Worker on port 8003..."
 cd /app/generation
