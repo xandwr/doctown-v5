@@ -22,7 +22,7 @@
 //!
 //! ```rust
 //! use doctown_docpack::{
-//!     DocpackWriter, Manifest, Graph, Nodes, Clusters, SourceMap, Symbol, Cluster,
+//!     DocpackWriter, DocpackContent, Manifest, Graph, Nodes, Clusters, SourceMap, Symbol, Cluster,
 //!     SourceMapFile, SourceMapChunk, Edge
 //! };
 //!
@@ -72,21 +72,23 @@
 //!
 //! // Write to bytes
 //! let writer = DocpackWriter::new();
-//! let bytes = writer.write(manifest, &graph, &nodes, &clusters, &source_map).unwrap();
+//! let content = DocpackContent::new(&graph, &nodes, &clusters, &source_map);
+//! let bytes = writer.write(manifest, &content).unwrap();
 //! ```
 //!
 //! ### Reading a docpack
 //!
 //! ```rust
 //! use doctown_docpack::DocpackReader;
-//! # use doctown_docpack::{DocpackWriter, Manifest, Graph, Nodes, Clusters, SourceMap, Symbol, Cluster, SourceMapFile, SourceMapChunk, Edge};
+//! # use doctown_docpack::{DocpackWriter, DocpackContent, Manifest, Graph, Nodes, Clusters, SourceMap, Symbol, Cluster, SourceMapFile, SourceMapChunk, Edge};
 //! # let manifest = Manifest::new("https://github.com/user/repo".to_string(), "main".to_string(), None, 0, 0, 0);
 //! # let graph = Graph::empty();
 //! # let nodes = Nodes::empty();
 //! # let clusters = Clusters::empty();
 //! # let source_map = SourceMap::empty();
 //! # let writer = DocpackWriter::new();
-//! # let bytes = writer.write(manifest, &graph, &nodes, &clusters, &source_map).unwrap();
+//! # let content = DocpackContent::new(&graph, &nodes, &clusters, &source_map);
+//! # let bytes = writer.write(manifest, &content).unwrap();
 //!
 //! let reader = DocpackReader::read(&bytes).unwrap();
 //! let manifest = reader.manifest();
@@ -112,7 +114,7 @@ pub use nodes::{Documentation, Nodes, Symbol};
 pub use reader::{DocpackReader, ReadError};
 pub use source_map::{SourceMap, SourceMapChunk, SourceMapFile};
 pub use symbol_contexts::{SymbolContext, SymbolContexts};
-pub use writer::{DocpackWriter, WriteError};
+pub use writer::{DocpackContent, DocpackWriter, WriteError};
 
 #[cfg(test)]
 mod integration_tests {
@@ -195,8 +197,9 @@ mod integration_tests {
 
         // Write
         let writer = DocpackWriter::new();
+        let content = DocpackContent::new(&graph, &nodes, &clusters, &source_map);
         let bytes = writer
-            .write(manifest.clone(), &graph, &nodes, &clusters, &source_map)
+            .write(manifest.clone(), &content)
             .expect("Failed to write docpack");
 
         // Read
@@ -256,8 +259,9 @@ mod integration_tests {
         let source_map = SourceMap::empty();
 
         let writer = DocpackWriter::new();
+        let content = DocpackContent::new(&graph, &nodes, &clusters, &source_map);
         let bytes = writer
-            .write(manifest, &graph, &nodes, &clusters, &source_map)
+            .write(manifest, &content)
             .expect("Failed to write minimal docpack");
 
         let reader = DocpackReader::read(&bytes).expect("Failed to read minimal docpack");
@@ -316,13 +320,11 @@ mod integration_tests {
             .unwrap();
 
         let writer = DocpackWriter::new();
+        let content = DocpackContent::new(&graph, &nodes, &clusters, &source_map);
         let bytes = writer
             .write_with_optional(
                 manifest,
-                &graph,
-                &nodes,
-                &clusters,
-                &source_map,
+                &content,
                 Some(&embeddings_writer),
                 None,
             )
@@ -380,13 +382,11 @@ mod integration_tests {
         .with_temperature(0.7)]);
 
         let writer = DocpackWriter::new();
+        let content = DocpackContent::new(&graph, &nodes, &clusters, &source_map);
         let bytes = writer
             .write_with_optional(
                 manifest,
-                &graph,
-                &nodes,
-                &clusters,
-                &source_map,
+                &content,
                 None,
                 Some(&symbol_contexts),
             )
@@ -458,13 +458,11 @@ mod integration_tests {
         )]);
 
         let writer = DocpackWriter::new();
+        let content = DocpackContent::new(&graph, &nodes, &clusters, &source_map);
         let bytes = writer
             .write_with_optional(
                 manifest,
-                &graph,
-                &nodes,
-                &clusters,
-                &source_map,
+                &content,
                 Some(&embeddings_writer),
                 Some(&symbol_contexts),
             )
@@ -491,14 +489,13 @@ mod integration_tests {
         );
 
         let writer = DocpackWriter::new();
+        let graph = Graph::empty();
+        let nodes = Nodes::empty();
+        let clusters = Clusters::empty();
+        let source_map = SourceMap::empty();
+        let content = DocpackContent::new(&graph, &nodes, &clusters, &source_map);
         let bytes = writer
-            .write(
-                manifest,
-                &Graph::empty(),
-                &Nodes::empty(),
-                &Clusters::empty(),
-                &SourceMap::empty(),
-            )
+            .write(manifest, &content)
             .unwrap();
 
         // Should succeed with correct version

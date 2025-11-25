@@ -25,6 +25,30 @@ pub enum WriteError {
 
 pub type Result<T> = std::result::Result<T, WriteError>;
 
+/// Core content components for a docpack
+pub struct DocpackContent<'a> {
+    pub graph: &'a Graph,
+    pub nodes: &'a Nodes,
+    pub clusters: &'a Clusters,
+    pub source_map: &'a SourceMap,
+}
+
+impl<'a> DocpackContent<'a> {
+    pub fn new(
+        graph: &'a Graph,
+        nodes: &'a Nodes,
+        clusters: &'a Clusters,
+        source_map: &'a SourceMap,
+    ) -> Self {
+        Self {
+            graph,
+            nodes,
+            clusters,
+            source_map,
+        }
+    }
+}
+
 /// Writer for creating .docpack archives
 pub struct DocpackWriter {
     compression_level: Compression,
@@ -49,30 +73,24 @@ impl DocpackWriter {
     pub fn write(
         &self,
         manifest: Manifest,
-        graph: &Graph,
-        nodes: &Nodes,
-        clusters: &Clusters,
-        source_map: &SourceMap,
+        content: &DocpackContent,
     ) -> Result<Vec<u8>> {
-        self.write_with_optional(manifest, graph, nodes, clusters, source_map, None, None)
+        self.write_with_optional(manifest, content, None, None)
     }
 
     /// Write a docpack to bytes with optional embeddings and symbol contexts
     pub fn write_with_optional(
         &self,
         mut manifest: Manifest,
-        graph: &Graph,
-        nodes: &Nodes,
-        clusters: &Clusters,
-        source_map: &SourceMap,
+        content: &DocpackContent,
         embeddings: Option<&EmbeddingsWriter>,
         symbol_contexts: Option<&SymbolContexts>,
     ) -> Result<Vec<u8>> {
         // Serialize all components
-        let graph_json = graph.to_json_bytes()?;
-        let nodes_json = nodes.to_json_bytes()?;
-        let clusters_json = clusters.to_json_bytes()?;
-        let source_map_json = source_map.to_json_bytes()?;
+        let graph_json = content.graph.to_json_bytes()?;
+        let nodes_json = content.nodes.to_json_bytes()?;
+        let clusters_json = content.clusters.to_json_bytes()?;
+        let source_map_json = content.source_map.to_json_bytes()?;
 
         // Serialize optional components
         let embeddings_bin = embeddings.map(|e| e.write()).transpose()?;
@@ -242,8 +260,9 @@ mod tests {
         let nodes = create_test_nodes();
         let clusters = create_test_clusters();
         let source_map = create_test_source_map();
+        let content = DocpackContent::new(&graph, &nodes, &clusters, &source_map);
 
-        let result = writer.write(manifest, &graph, &nodes, &clusters, &source_map);
+        let result = writer.write(manifest, &content);
         assert!(result.is_ok());
 
         let bytes = result.unwrap();
@@ -262,9 +281,10 @@ mod tests {
         let nodes = create_test_nodes();
         let clusters = create_test_clusters();
         let source_map = create_test_source_map();
+        let content = DocpackContent::new(&graph, &nodes, &clusters, &source_map);
 
-        let result1 = writer.write(manifest.clone(), &graph, &nodes, &clusters, &source_map);
-        let result2 = writer.write(manifest, &graph, &nodes, &clusters, &source_map);
+        let result1 = writer.write(manifest.clone(), &content);
+        let result2 = writer.write(manifest, &content);
 
         assert!(result1.is_ok());
         assert!(result2.is_ok());
@@ -285,8 +305,9 @@ mod tests {
         let nodes = create_test_nodes();
         let clusters = create_test_clusters();
         let source_map = create_test_source_map();
+        let content = DocpackContent::new(&graph, &nodes, &clusters, &source_map);
 
-        let result = writer.write(manifest, &graph, &nodes, &clusters, &source_map);
+        let result = writer.write(manifest, &content);
         assert!(result.is_ok());
     }
 }

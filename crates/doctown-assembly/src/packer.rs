@@ -4,7 +4,7 @@
 //! embeddings, symbol contexts) and packages them into a reproducible .docpack file.
 
 use doctown_docpack::{
-    Cluster, Clusters, DocpackWriter, Edge, Graph, Manifest, Nodes, SourceMap, SourceMapChunk,
+    Cluster, Clusters, DocpackContent, DocpackWriter, Edge, Graph, Manifest, Nodes, SourceMap, SourceMapChunk,
     SourceMapFile, Symbol,
 };
 use serde::{Deserialize, Serialize};
@@ -161,8 +161,9 @@ impl Packer {
 
         // M4.2.3: Write docpack (reproducible)
         let writer = DocpackWriter::new();
+        let content = DocpackContent::new(&graph, &nodes, &clusters, &source_map);
         let docpack_bytes = writer
-            .write(manifest.clone(), &graph, &nodes, &clusters, &source_map)
+            .write(manifest.clone(), &content)
             .map_err(|e| format!("Failed to write docpack: {}", e))?;
 
         // Compute docpack_id (content-addressed)

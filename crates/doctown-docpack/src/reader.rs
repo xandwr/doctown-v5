@@ -245,7 +245,7 @@ impl DocpackReader {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{writer::DocpackWriter, Cluster, Edge, Symbol};
+    use crate::{writer::{DocpackContent, DocpackWriter}, Cluster, Edge, Symbol};
 
     fn create_test_manifest() -> Manifest {
         Manifest::new(
@@ -320,9 +320,10 @@ mod tests {
         let nodes = create_test_nodes();
         let clusters = create_test_clusters();
         let source_map = create_test_source_map();
+        let content = DocpackContent::new(&graph, &nodes, &clusters, &source_map);
 
         let bytes = writer
-            .write(manifest, &graph, &nodes, &clusters, &source_map)
+            .write(manifest, &content)
             .unwrap();
 
         let reader = DocpackReader::read(&bytes);
@@ -347,10 +348,11 @@ mod tests {
         let nodes = create_test_nodes();
         let clusters = create_test_clusters();
         let source_map = create_test_source_map();
+        let content = DocpackContent::new(&graph, &nodes, &clusters, &source_map);
 
         // Write
         let bytes = writer
-            .write(manifest.clone(), &graph, &nodes, &clusters, &source_map)
+            .write(manifest.clone(), &content)
             .unwrap();
 
         // Read
@@ -374,9 +376,10 @@ mod tests {
         let nodes = create_test_nodes();
         let clusters = create_test_clusters();
         let source_map = create_test_source_map();
+        let content = DocpackContent::new(&graph, &nodes, &clusters, &source_map);
 
         let mut bytes = writer
-            .write(manifest, &graph, &nodes, &clusters, &source_map)
+            .write(manifest, &content)
             .unwrap();
 
         // Corrupt some bytes in the middle
@@ -398,9 +401,10 @@ mod tests {
         let nodes = create_test_nodes();
         let clusters = create_test_clusters();
         let source_map = create_test_source_map();
+        let content = DocpackContent::new(&graph, &nodes, &clusters, &source_map);
 
         let bytes = writer
-            .write(manifest, &graph, &nodes, &clusters, &source_map)
+            .write(manifest, &content)
             .unwrap();
 
         let reader = DocpackReader::read(&bytes).unwrap();
