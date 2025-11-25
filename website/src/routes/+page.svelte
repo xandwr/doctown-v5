@@ -330,12 +330,12 @@
 	}
 </script>
 
-<div class="min-h-screen bg-gray-50 py-12 px-4">
+<div class="bg-gray-50 py-12 px-4">
 	<div class="max-w-4xl mx-auto">
 		<header class="text-center mb-12">
-			<h1 class="text-4xl font-bold text-gray-900 mb-2">Doctown v5</h1>
+			<h1 class="text-4xl font-bold text-gray-900 mb-2">Generate Documentation</h1>
 			<p class="text-lg text-gray-600">
-				Analyze and document your GitHub repositories with AI-powered insights
+				Analyze GitHub repositories and create AI-powered documentation packs
 			</p>
 		</header>
 
