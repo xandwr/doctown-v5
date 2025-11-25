@@ -6,6 +6,7 @@ const BUCKET_NAME = process.env.BUCKET_NAME?.trim();
 const BUCKET_ACCESS_KEY_ID = process.env.BUCKET_ACCESS_KEY_ID?.trim();
 const BUCKET_SECRET_ACCESS_KEY = process.env.BUCKET_SECRET_ACCESS_KEY?.trim();
 const BUCKET_S3_ENDPOINT = process.env.BUCKET_S3_ENDPOINT?.trim();
+const BUCKET_PUBLIC_URL = process.env.BUCKET_PUBLIC_URL?.trim(); // e.g., https://pub-xxx.r2.dev or your custom domain
 
 if (!BUCKET_NAME || !BUCKET_ACCESS_KEY_ID || !BUCKET_SECRET_ACCESS_KEY || !BUCKET_S3_ENDPOINT) {
 	console.error('Missing required R2 environment variables');
@@ -66,14 +67,20 @@ export const POST: RequestHandler = async ({ request }) => {
 
 		await s3Client.send(command);
 
+		// Construct public URL - use BUCKET_PUBLIC_URL if set, otherwise fall back to r2.dev pattern
+		const publicUrl = BUCKET_PUBLIC_URL 
+			? `${BUCKET_PUBLIC_URL}/${key}`
+			: `https://${BUCKET_NAME}.r2.dev/${key}`; // Fallback (may not work without public access enabled)
+
 		return json({
 			success: true,
 			key,
 			size: buffer.length,
-			url: `https://${BUCKET_NAME}/${key}`
+			url: publicUrl
 		});
 	} catch (err: any) {
 		console.error('Error uploading to R2:', err);
-		throw error(500, `Failed to upload docpack: ${err.message}`);
+		const message = err.message || err.Code || err.name || 'Unknown error';
+		throw error(500, `Failed to upload docpack: ${message}`);
 	}
 };
