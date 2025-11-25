@@ -4,8 +4,8 @@
 //! embeddings, symbol contexts) and packages them into a reproducible .docpack file.
 
 use doctown_docpack::{
-    Cluster, Clusters, DocpackContent, DocpackWriter, Edge, Graph, Manifest, Nodes, SourceMap, SourceMapChunk,
-    SourceMapFile, Symbol,
+    Cluster, Clusters, DocpackContent, DocpackWriter, Edge, Graph, Manifest, Nodes, SourceMap,
+    SourceMapChunk, SourceMapFile, Symbol,
 };
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;

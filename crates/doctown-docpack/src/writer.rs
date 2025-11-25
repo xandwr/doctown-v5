@@ -70,11 +70,7 @@ impl DocpackWriter {
     }
 
     /// Write a docpack to bytes (without optional files)
-    pub fn write(
-        &self,
-        manifest: Manifest,
-        content: &DocpackContent,
-    ) -> Result<Vec<u8>> {
+    pub fn write(&self, manifest: Manifest, content: &DocpackContent) -> Result<Vec<u8>> {
         self.write_with_optional(manifest, content, None, None)
     }
 

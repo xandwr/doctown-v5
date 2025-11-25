@@ -245,7 +245,10 @@ impl DocpackReader {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{writer::{DocpackContent, DocpackWriter}, Cluster, Edge, Symbol};
+    use crate::{
+        writer::{DocpackContent, DocpackWriter},
+        Cluster, Edge, Symbol,
+    };
 
     fn create_test_manifest() -> Manifest {
         Manifest::new(
@@ -322,9 +325,7 @@ mod tests {
         let source_map = create_test_source_map();
         let content = DocpackContent::new(&graph, &nodes, &clusters, &source_map);
 
-        let bytes = writer
-            .write(manifest, &content)
-            .unwrap();
+        let bytes = writer.write(manifest, &content).unwrap();
 
         let reader = DocpackReader::read(&bytes);
         assert!(reader.is_ok());
@@ -351,9 +352,7 @@ mod tests {
         let content = DocpackContent::new(&graph, &nodes, &clusters, &source_map);
 
         // Write
-        let bytes = writer
-            .write(manifest.clone(), &content)
-            .unwrap();
+        let bytes = writer.write(manifest.clone(), &content).unwrap();
 
         // Read
         let reader = DocpackReader::read(&bytes).unwrap();
@@ -378,9 +377,7 @@ mod tests {
         let source_map = create_test_source_map();
         let content = DocpackContent::new(&graph, &nodes, &clusters, &source_map);
 
-        let mut bytes = writer
-            .write(manifest, &content)
-            .unwrap();
+        let mut bytes = writer.write(manifest, &content).unwrap();
 
         // Corrupt some bytes in the middle
         if bytes.len() > 100 {
@@ -403,9 +400,7 @@ mod tests {
         let source_map = create_test_source_map();
         let content = DocpackContent::new(&graph, &nodes, &clusters, &source_map);
 
-        let bytes = writer
-            .write(manifest, &content)
-            .unwrap();
+        let bytes = writer.write(manifest, &content).unwrap();
 
         let reader = DocpackReader::read(&bytes).unwrap();
         let (manifest, graph, nodes, clusters, source_map) = reader.into_parts();

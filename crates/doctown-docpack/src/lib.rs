@@ -322,12 +322,7 @@ mod integration_tests {
         let writer = DocpackWriter::new();
         let content = DocpackContent::new(&graph, &nodes, &clusters, &source_map);
         let bytes = writer
-            .write_with_optional(
-                manifest,
-                &content,
-                Some(&embeddings_writer),
-                None,
-            )
+            .write_with_optional(manifest, &content, Some(&embeddings_writer), None)
             .expect("Failed to write docpack with embeddings");
 
         let reader = DocpackReader::read(&bytes).expect("Failed to read docpack with embeddings");
@@ -384,12 +379,7 @@ mod integration_tests {
         let writer = DocpackWriter::new();
         let content = DocpackContent::new(&graph, &nodes, &clusters, &source_map);
         let bytes = writer
-            .write_with_optional(
-                manifest,
-                &content,
-                None,
-                Some(&symbol_contexts),
-            )
+            .write_with_optional(manifest, &content, None, Some(&symbol_contexts))
             .expect("Failed to write docpack with contexts");
 
         let reader = DocpackReader::read(&bytes).expect("Failed to read docpack with contexts");
@@ -494,9 +484,7 @@ mod integration_tests {
         let clusters = Clusters::empty();
         let source_map = SourceMap::empty();
         let content = DocpackContent::new(&graph, &nodes, &clusters, &source_map);
-        let bytes = writer
-            .write(manifest, &content)
-            .unwrap();
+        let bytes = writer.write(manifest, &content).unwrap();
 
         // Should succeed with correct version
         let reader = DocpackReader::read(&bytes);
