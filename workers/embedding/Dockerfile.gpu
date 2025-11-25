@@ -1,0 +1,54 @@
+# GPU-Accelerated Embedding Worker for RunPod Serverless
+# Uses ONNX Runtime with CUDA for fast inference
+
+# Using a more standard CUDA base image that's widely available
+FROM nvidia/cuda:12.1.0-cudnn8-devel-ubuntu22.04
+
+WORKDIR /app
+
+# Install Python and system dependencies
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    python3.11 \
+    python3.11-dev \
+    python3-pip \
+    build-essential \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
+
+# Make python3.11 the default
+RUN update-alternatives --install /usr/bin/python3 python3 /usr/bin/python3.11 1 && \
+    update-alternatives --install /usr/bin/python python /usr/bin/python3.11 1
+
+# Install Python dependencies with GPU support
+# Note: We install onnxruntime-gpu instead of onnxruntime
+RUN python3 -m pip install --no-cache-dir --upgrade pip && \
+    python3 -m pip install --no-cache-dir \
+    numpy \
+    tokenizers \
+    transformers \
+    onnxruntime-gpu \
+    runpod \
+    pydantic \
+    psutil
+
+# Copy application code (paths relative to project root)
+COPY workers/embedding/app/ ./app/
+
+# Copy the RunPod handler
+COPY workers/embedding/runpod_handler.py ./runpod_handler.py
+
+# Copy model files
+# Note: In production, you might want to download from HuggingFace Hub instead
+# The model path is relative to the docker build context (project root)
+COPY models/minilm-l6/ ./models/minilm-l6/
+
+# Set environment variables for GPU
+ENV ONNX_USE_GPU=true
+ENV MODEL_PATH=/app/models/minilm-l6
+ENV CUDA_VISIBLE_DEVICES=0
+
+# Verify CUDA is available
+RUN python -c "import onnxruntime as ort; print('Available providers:', ort.get_available_providers())"
+
+# Run the serverless handler
+CMD ["python", "-u", "runpod_handler.py"]

@@ -1,0 +1,50 @@
+# Builder Serverless - RunPod Serverless Handler
+# Wraps doctown-ingest for repository ingestion with async embedder calls
+
+# Stage 1: Build the Rust application
+FROM rust:1.83 as builder
+
+WORKDIR /app
+
+# Copy only cargo files first for better layer caching
+COPY Cargo.toml Cargo.lock rust-toolchain.toml ./
+COPY crates/ crates/
+COPY builder/Cargo.toml builder/
+COPY builder/src/ builder/src/
+
+# Build in release mode
+RUN cargo build --release --bin builder
+
+# Stage 2: Create the final runtime image
+FROM python:3.11-slim
+
+WORKDIR /app
+
+# Install runtime dependencies
+RUN apt-get update && apt-get install -y \
+    ca-certificates \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
+
+# Copy the built binary
+COPY --from=builder /app/target/release/builder /app/builder
+
+# Copy the serverless handler
+COPY builder/handler_serverless.py /app/handler.py
+
+# Install Python dependencies for serverless
+RUN pip install --no-cache-dir \
+    runpod \
+    requests \
+    aiohttp
+
+# Set environment variables for serverless
+ENV PRODUCTION=true
+ENV HOST=127.0.0.1
+ENV SKIP_EMBEDDING=true
+
+# RunPod serverless mode - no exposed ports needed
+# The handler is invoked directly by RunPod
+
+# Default: Run the serverless handler
+CMD ["python3", "-u", "/app/handler.py"]

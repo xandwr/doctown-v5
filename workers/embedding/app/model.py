@@ -1,8 +1,12 @@
-"""Embedding model using ONNX Runtime with memory-aware batching."""
+"""Embedding model using ONNX Runtime with memory-aware batching.
+
+Supports both CPU and GPU inference via ONNX Runtime providers.
+"""
 
 import gc
 import json
 import logging
+import os
 import time
 from pathlib import Path
 from typing import List, Tuple
@@ -15,6 +19,11 @@ from transformers import AutoTokenizer
 from .config import settings
 
 logger = logging.getLogger(__name__)
+
+# Check for GPU support
+ONNX_USE_GPU = os.environ.get("ONNX_USE_GPU", "false").lower() in ("true", "1", "yes")
+AVAILABLE_PROVIDERS = ort.get_available_providers()
+HAS_CUDA = "CUDAExecutionProvider" in AVAILABLE_PROVIDERS
 
 
 class EmbeddingModel:
@@ -56,21 +65,41 @@ class EmbeddingModel:
             raise FileNotFoundError(f"Model not found at {model_file}")
         
         sess_options = ort.SessionOptions()
-        sess_options.intra_op_num_threads = settings.onnx_threads
-        sess_options.inter_op_num_threads = settings.onnx_threads
         sess_options.graph_optimization_level = ort.GraphOptimizationLevel.ORT_ENABLE_ALL
-        sess_options.execution_mode = ort.ExecutionMode.ORT_SEQUENTIAL  # Sequential is more memory-efficient
         
-        # Memory optimizations for CPU
-        sess_options.enable_mem_pattern = True
-        sess_options.enable_cpu_mem_arena = True
+        # Determine execution providers
+        if ONNX_USE_GPU and HAS_CUDA:
+            # GPU mode - use CUDA with fallback to CPU
+            providers = [
+                ('CUDAExecutionProvider', {
+                    'device_id': 0,
+                    'arena_extend_strategy': 'kNextPowerOfTwo',
+                    'gpu_mem_limit': 2 * 1024 * 1024 * 1024,  # 2GB limit
+                    'cudnn_conv_algo_search': 'EXHAUSTIVE',
+                    'do_copy_in_default_stream': True,
+                }),
+                'CPUExecutionProvider'
+            ]
+            logger.info("Using CUDA GPU for inference")
+        else:
+            # CPU mode - optimize for sequential processing
+            sess_options.intra_op_num_threads = settings.onnx_threads
+            sess_options.inter_op_num_threads = settings.onnx_threads
+            sess_options.execution_mode = ort.ExecutionMode.ORT_SEQUENTIAL
+            sess_options.enable_mem_pattern = True
+            sess_options.enable_cpu_mem_arena = True
+            providers = ['CPUExecutionProvider']
+            logger.info(f"Using CPU for inference with {settings.onnx_threads} threads")
         
         self.session = ort.InferenceSession(
             str(model_file),
             sess_options=sess_options,
-            providers=['CPUExecutionProvider']
+            providers=providers
         )
-        logger.info(f"ONNX model loaded (CPU-only) with {settings.onnx_threads} threads")
+        
+        # Log actual providers being used
+        actual_providers = self.session.get_providers()
+        logger.info(f"ONNX model loaded with providers: {actual_providers}")
         
     def warmup(self):
         """Warm up the model with a dummy inference."""

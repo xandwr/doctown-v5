@@ -65,7 +65,10 @@ pub async fn run_pipeline(
                 process_extracted_files(&extract_dir, context.clone(), sender.clone()).await?;
 
             // 4. Embed the chunks in batches (parallel with concurrency limit)
-            let chunks_embedded = if !collected_chunks.is_empty() {
+            // Skip embedding if SKIP_EMBEDDING is set (for serverless mode where embedding
+            // is handled externally)
+            let skip_embedding = env::var("SKIP_EMBEDDING").is_ok();
+            let chunks_embedded = if !collected_chunks.is_empty() && !skip_embedding {
                 let embedding_url = env::var("EMBEDDING_URL").unwrap_or_else(|_| "http://localhost:8000".to_string());
                 let embedding_client = EmbeddingClient::new(embedding_url);
 
