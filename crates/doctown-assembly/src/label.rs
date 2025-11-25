@@ -112,11 +112,9 @@ impl ClusterLabeler {
         for ch in text.chars() {
             if ch.is_alphanumeric() {
                 current_token.push(ch);
-            } else {
-                if !current_token.is_empty() {
-                    tokens.push(current_token.clone());
-                    current_token.clear();
-                }
+            } else if !current_token.is_empty() {
+                tokens.push(current_token.clone());
+                current_token.clear();
             }
         }
 

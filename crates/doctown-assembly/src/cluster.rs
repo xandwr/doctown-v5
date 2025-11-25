@@ -122,6 +122,7 @@ impl Clusterer {
         // Choose remaining centroids with probability proportional to distance squared
         for k in 1..self.k {
             let mut distances = vec![0.0f32; n];
+            #[allow(clippy::needless_range_loop)]
             for i in 0..n {
                 let vector = vectors.row(i);
                 let mut min_dist = f32::MAX;
@@ -197,6 +198,7 @@ impl Clusterer {
         }
 
         // Divide by counts to get mean
+        #[allow(clippy::needless_range_loop)]
         for k in 0..self.k {
             if counts[k] > 0 {
                 centroids.row_mut(k).mapv_inplace(|x| x / counts[k] as f32);

@@ -74,7 +74,7 @@ impl SymbolTable {
         // For method calls, try to extract just the method name
         if call.name.contains('.') {
             // Extract the last part after the dot
-            if let Some(method_name) = call.name.split('.').last() {
+            if let Some(method_name) = call.name.split('.').next_back() {
                 if let Some(id) = self.lookup(method_name) {
                     return Some(id);
                 }

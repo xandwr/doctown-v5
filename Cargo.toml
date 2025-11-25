@@ -41,6 +41,9 @@ url = "2"
 async-stream = "0.3"
 futures-util = "0.3"
 
+# Logging
+tracing = "0.1"
+
 # Testing
 pretty_assertions = "1"
 insta = { version = "1", features = ["json"] }

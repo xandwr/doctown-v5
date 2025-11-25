@@ -5,6 +5,7 @@ use serde::{Deserialize, Serialize};
 use tokio::signal;
 use tokio::sync::mpsc;
 use tokio_util::sync::CancellationToken;
+use tracing::{error, info};
 
 use crate::github::GitHubUrl;
 use crate::pipeline::run_pipeline;
@@ -138,7 +139,7 @@ async fn handle_ingest_request(
     // Spawn pipeline task
     tokio::spawn(async move {
         if let Err(e) = run_pipeline(job_id, &github_url, tx, cancel_token_clone).await {
-            eprintln!("Pipeline error: {}", e);
+            error!("Pipeline error: {}", e);
         }
     });
 
@@ -170,7 +171,7 @@ async fn handle_ingest_request(
                                     }
                                 }
                                 Err(e) => {
-                                    eprintln!("Failed to serialize event: {}", e);
+                                    error!("Failed to serialize event: {}", e);
                                 }
                             }
                         }
@@ -237,9 +238,9 @@ async fn health() -> impl Responder {
 pub async fn start_server(config: ServerConfig) -> std::io::Result<()> {
     let bind_addr = format!("{}:{}", config.host, config.port);
 
-    println!("Starting Doctown Ingest API server on {}", bind_addr);
-    println!("Configured CORS origins: {:?}", config.cors_origins);
-    println!("Max request body size: {} bytes", config.max_body_size);
+    info!("Starting Doctown Ingest API server on {}", bind_addr);
+    info!("Configured CORS origins: {:?}", config.cors_origins);
+    info!("Max request body size: {} bytes", config.max_body_size);
 
     let server = HttpServer::new(move || {
         // Build CORS middleware
@@ -281,10 +282,10 @@ pub async fn start_server(config: ServerConfig) -> std::io::Result<()> {
     // Wait for shutdown signal
     tokio::select! {
         _ = signal::ctrl_c() => {
-            println!("Received Ctrl-C signal, initiating graceful shutdown...");
+            info!("Received Ctrl-C signal, initiating graceful shutdown...");
         }
         _ = shutdown_signal() => {
-            println!("Received termination signal, initiating graceful shutdown...");
+            info!("Received termination signal, initiating graceful shutdown...");
         }
     }
 
@@ -294,16 +295,16 @@ pub async fn start_server(config: ServerConfig) -> std::io::Result<()> {
     // Wait for the server to finish
     match server_task.await {
         Ok(Ok(())) => {
-            println!("Server shutdown complete");
+            info!("Server shutdown complete");
             Ok(())
         }
         Ok(Err(e)) => {
-            eprintln!("Server error during shutdown: {}", e);
+            error!("Server error during shutdown: {}", e);
             Err(e)
         }
         Err(e) => {
-            eprintln!("Server task panicked: {}", e);
-            Err(std::io::Error::new(std::io::ErrorKind::Other, e))
+            error!("Server task panicked: {}", e);
+            Err(std::io::Error::other(e))
         }
     }
 }

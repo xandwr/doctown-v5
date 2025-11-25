@@ -10,6 +10,7 @@ use std::env;
 use tempfile::tempdir;
 use tokio::sync::mpsc;
 use tokio_util::sync::CancellationToken;
+use tracing::{info, warn};
 
 /// Type alias for the event sender.
 pub type EventSender = mpsc::Sender<Envelope<serde_json::Value>>;
@@ -113,11 +114,11 @@ pub async fn run_pipeline(
                             } else {
                                 0
                             };
-                            eprintln!("Embedded batch {}: {} chunks in {}ms (~{} chunks/sec)",
+                            info!("Embedded batch {}: {} chunks in {}ms (~{} chunks/sec)",
                                 batch_num + 1, vectors.len(), duration_ms, chunks_per_sec);
                         }
                         Err(e) => {
-                            eprintln!("Warning: Failed to embed batch {}: {}", batch_num + 1, e);
+                            warn!("Failed to embed batch {}: {}", batch_num + 1, e);
                         }
                     }
                 }
@@ -127,7 +128,7 @@ pub async fn run_pipeline(
                 0
             };
 
-            eprintln!("Embedding complete: {} chunks embedded", chunks_embedded);
+            info!("Embedding complete: {} chunks embedded", chunks_embedded);
 
             dir.close()?;
             Ok((files_processed, files_skipped, chunks_created, chunks_embedded))
@@ -151,7 +152,7 @@ pub async fn run_pipeline(
                 payload
             };
 
-            eprintln!(
+            info!(
                 "Sending ingest.completed.v1 event: {} files, {} chunks, {} embedded",
                 files_processed, chunks_created, chunks_embedded
             );

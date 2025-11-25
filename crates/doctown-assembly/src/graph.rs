@@ -275,6 +275,7 @@ impl GraphBuilder {
             let (id_i, emb_i) = &node_embeddings[i];
             let mut sims: Vec<(String, f32)> = Vec::new();
 
+            #[allow(clippy::needless_range_loop)]
             for j in 0..node_embeddings.len() {
                 if i == j {
                     continue; // Skip self-similarity

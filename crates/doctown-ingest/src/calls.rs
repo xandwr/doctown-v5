@@ -105,7 +105,7 @@ fn extract_python_call(node: Node<'_>, source_code: &str) -> Option<Call> {
     // Determine call kind
     let kind = if function_node.kind() == "attribute" {
         CallKind::Method
-    } else if name.chars().next().map_or(false, |c| c.is_uppercase()) {
+    } else if name.chars().next().is_some_and(|c| c.is_uppercase()) {
         // Heuristic: capitalized names are likely classes
         CallKind::Constructor
     } else {

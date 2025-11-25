@@ -977,7 +977,7 @@ fn extract_go_function(node: Node<'_>, source: &str) -> Option<Symbol> {
     let signature = extract_go_function_signature(node, source);
 
     // Go exports are determined by capitalization
-    let visibility = if name.chars().next().map_or(false, |c| c.is_uppercase()) {
+    let visibility = if name.chars().next().is_some_and(|c| c.is_uppercase()) {
         Visibility::Public
     } else {
         Visibility::Private
@@ -1009,7 +1009,7 @@ fn extract_go_method(node: Node<'_>, source: &str) -> Option<Symbol> {
     // Extract signature (receiver + name + params + return type)
     let signature = extract_go_method_signature(receiver, node, source);
 
-    let visibility = if name.chars().next().map_or(false, |c| c.is_uppercase()) {
+    let visibility = if name.chars().next().is_some_and(|c| c.is_uppercase()) {
         Visibility::Public
     } else {
         Visibility::Private
@@ -1079,7 +1079,7 @@ fn extract_go_type_spec(node: Node<'_>, source: &str) -> Option<Symbol> {
     let type_text = node_text(type_node, source);
     let signature = Some(format!("{} {}", name, type_text));
 
-    let visibility = if name.chars().next().map_or(false, |c| c.is_uppercase()) {
+    let visibility = if name.chars().next().is_some_and(|c| c.is_uppercase()) {
         Visibility::Public
     } else {
         Visibility::Private

@@ -203,9 +203,7 @@ async fn assemble(req: Json<AssembleRequest>) -> impl Responder {
     .unwrap();
 
     // Determine optimal cluster count (sqrt(n/2) heuristic)
-    let k = ((req.chunks.len() as f64 / 2.0).sqrt().ceil() as usize)
-        .max(2)
-        .min(20);
+    let k = ((req.chunks.len() as f64 / 2.0).sqrt().ceil() as usize).clamp(2, 20);
     info!("Using k={} clusters for {} chunks", k, req.chunks.len());
 
     let clusterer = Clusterer::new(k);
