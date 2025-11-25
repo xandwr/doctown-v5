@@ -46,26 +46,11 @@
 		docpackUrl = null;
 		stats = { filesProcessed: 0, filesSkipped: 0, chunksCreated: 0, chunksEmbedded: 0 };
 
-		const apiUrl = import.meta.env.VITE_INGEST_API_URL || 'http://localhost:3000';
-		const embeddingUrl = import.meta.env.VITE_EMBEDDING_API_URL || 'http://localhost:8000';
-		const assemblyUrl = import.meta.env.VITE_ASSEMBLY_API_URL || 'http://localhost:8002';
 		const jobId = `job_${Date.now()}`;
 
 		try {
-			// Stage 1: Ingest - collect all chunks and symbols
-			await runIngestStage(apiUrl, repoUrl, jobId);
-			
-			// Stage 2: Embedding - batch chunks and get embeddings
-			pipelineStage = 'embedding';
-			await runEmbeddingStage(embeddingUrl, jobId);
-			
-			// Stage 3: Assembly - create graph and clusters
-			pipelineStage = 'assembly';
-			await runAssemblyStage(assemblyUrl, repoUrl, jobId);
-			
-			// Stage 4: Upload .docpack to R2
-			pipelineStage = 'uploading';
-			await uploadDocpack(repoUrl, jobId);
+			// Submit job to Builder serverless endpoint via server-side API
+			await runBuilderServerless(repoUrl, jobId);
 			
 			pipelineStage = 'complete';
 			console.log('Pipeline complete! Docpack available at:', docpackUrl);
@@ -77,192 +62,114 @@
 		}
 	}
 
-	async function runIngestStage(apiUrl: string, repoUrl: string, jobId: string): Promise<void> {
-		return new Promise((resolve, reject) => {
-			sseClient = new SSEClient(
-				`${apiUrl}/ingest?repo_url=${encodeURIComponent(repoUrl)}&job_id=${jobId}`,
-				{
-				onMessage: (event: any) => {
-					const eventType = event.event_type;
-					
-					// Store all events
-					console.log('SSE event received:', event);
-					events = [...events, event];
-					
-					// Track chunks (store content for assembly stage)
-					if (eventType === 'ingest.chunk_created.v1') {
-						chunks = [...chunks, {
-							chunk_id: event.payload.chunk_id,
-							content: event.payload.content || '' // Store content for cluster labeling
-						}];
-						
-						// Build symbol metadata if this is a symbol chunk
-						if (event.payload.symbol_kind && event.payload.symbol_name) {
-							// Create a unique symbol ID from chunk ID (since symbols don't have separate IDs in events)
-							const symbolId = event.payload.chunk_id;
-							const existingIndex = symbols.findIndex(s => s.symbol_id === symbolId);
-							if (existingIndex === -1) {
-								symbols = [...symbols, {
-									symbol_id: symbolId,
-									name: event.payload.symbol_name,
-									kind: event.payload.symbol_kind,
-									file_path: event.payload.file_path || '',
-									signature: '',  // Not available in chunk_created events
-									chunk_ids: [event.payload.chunk_id],
-									calls: [],  // Not available in chunk_created events
-									imports: [],  // Not available in chunk_created events
-									language: event.payload.language || 'unknown'
-								}];
-							} else {
-								// Update existing symbol's chunk_ids
-								symbols = symbols.map((s, i) => 
-									i === existingIndex 
-										? { ...s, chunk_ids: [...s.chunk_ids, event.payload.chunk_id] }
-										: s
-								);
-							}
-						}
-					}
-						
-						// Complete ingest stage on completion
-						if (eventType === 'ingest.completed.v1') {
-							console.log(`Ingest complete: ${chunks.length} chunks, ${symbols.length} symbols`);
-							if (sseClient) {
-								sseClient.close();
-								sseClient = null;
-							}
-							// Small delay to ensure stream closes gracefully
-							setTimeout(() => resolve(), 100);
-						}
-					},
-					onError: (error) => {
-						console.error('SSE error:', error);
-						reject(error);
-					},
-					onOpen: () => {
-						console.log('SSE connection opened');
-					},
-					onClose: () => {
-						console.log('SSE connection closed');
-					}
-				}
-			);
+	async function runBuilderServerless(repoUrl: string, jobId: string): Promise<void> {
+		console.log('Submitting job to Builder serverless...');
+		pipelineStage = 'ingest';
 
-			sseClient.connect();
+		// Submit job via server-side API (keeps API key secure)
+		const submitResponse = await fetch('/api/submit-build', {
+			method: 'POST',
+			headers: {
+				'Content-Type': 'application/json'
+			},
+			body: JSON.stringify({
+				repo_url: repoUrl,
+				job_id: jobId
+			})
 		});
-	}
 
-	async function runEmbeddingStage(embeddingUrl: string, jobId: string): Promise<void> {
-		const embeddingClient = new EmbeddingClient(embeddingUrl);
-		
-		console.log(`Embedding stage: processing ${chunks.length} chunks`);
-		
-		// Add embedding started event
-		events = [...events, {
-			event_type: 'embedding.batch_started.v1',
-			payload: { batch_id: jobId, chunk_count: chunks.length },
-			timestamp: new Date().toISOString()
-		}];
-		
-		// Batch chunks (reduced to 64 to prevent memory issues on RunPod)
-		const batchSize = 64;
-		const batches: Chunk[][] = [];
-		for (let i = 0; i < chunks.length; i += batchSize) {
-			batches.push(chunks.slice(i, i + batchSize));
+		if (!submitResponse.ok) {
+			const errorData = await submitResponse.json();
+			throw new Error(errorData.error || `Failed to submit job: ${submitResponse.status}`);
 		}
+
+		const submitResult = await submitResponse.json();
+		const runpodJobId = submitResult.id;
 		
-		console.log(`Processing ${batches.length} batches of embeddings`);
-		
-		// Process batches sequentially with retry logic
-		for (let i = 0; i < batches.length; i++) {
-			const batch = batches[i];
-			const batchId = `${jobId}_batch_${i}`;
-			
-			let retries = 3;
-			let lastError: Error | null = null;
-			
-			while (retries > 0) {
-				try {
-					const response = await embeddingClient.embed({
-						batch_id: batchId,
-						chunks: batch
-					});
-					
-					// Store embeddings (use new Map to trigger reactivity)
-					const newEmbeddings = new Map(embeddings);
-					for (const vector of response.vectors) {
-						newEmbeddings.set(vector.chunk_id, vector.vector);
-					}
-					embeddings = newEmbeddings;
-					
-					console.log(`Batch ${i + 1}/${batches.length} complete: ${response.vectors.length} vectors`);
-					break; // Success, exit retry loop
-				} catch (error: any) {
-					lastError = error;
-					retries--;
-					console.warn(`Embedding batch ${i + 1} failed, ${retries} retries left:`, error.message);
-					
-					if (retries > 0) {
-						// Wait before retry (exponential backoff)
-						await new Promise(resolve => setTimeout(resolve, 1000 * (3 - retries)));
-					}
+		console.log(`Job submitted: ${runpodJobId}`);
+
+		// Poll for job completion
+		const pollInterval = 2000; // Poll every 2 seconds
+		const maxWaitTime = 600000; // 10 minutes timeout
+		const startTime = Date.now();
+
+		while (true) {
+			// Check timeout
+			if (Date.now() - startTime > maxWaitTime) {
+				throw new Error('Job timeout: exceeded 10 minutes');
+			}
+
+			// Poll status via server-side API
+			const statusResponse = await fetch(`/api/build-status/${runpodJobId}`);
+
+			if (!statusResponse.ok) {
+				const errorData = await statusResponse.json();
+				throw new Error(errorData.error || `Failed to get job status: ${statusResponse.status}`);
+			}
+
+			const statusResult = await statusResponse.json();
+			const status = statusResult.status;
+
+			console.log(`Job status: ${status}`);
+
+			if (status === 'COMPLETED') {
+				// Job completed successfully
+				const output = statusResult.output;
+				
+				// Update pipeline stage based on progress
+				pipelineStage = 'uploading';
+				
+				// Extract data from result
+				if (output.ingest_summary) {
+					// Map ingest data to frontend format
+					chunks = output.ingest_summary.chunks || [];
+					symbols = output.ingest_summary.symbols || [];
 				}
-			}
-			
-			if (retries === 0 && lastError) {
-				throw new Error(`Embedding failed after 3 retries: ${lastError.message}`);
-			}
-		}
-		
-		// Add embedding completed event
-		events = [...events, {
-			event_type: 'embedding.batch_completed.v1',
-			payload: { batch_id: jobId, chunk_count: chunks.length, duration_ms: 0 },
-			timestamp: new Date().toISOString()
-		}];
-		
-		console.log(`Embedding stage complete: ${embeddings.size} embeddings generated`);
-	}
 
-	async function runAssemblyStage(assemblyUrl: string, repoUrl: string, jobId: string): Promise<void> {
-		const assemblyClient = new AssemblyClient(assemblyUrl);
-		
-		console.log(`Assembly stage: processing ${chunks.length} chunks with embeddings`);
-		
-		// Build chunks with embeddings
-		const chunksWithEmbeddings: ChunkWithEmbedding[] = chunks
-			.filter(chunk => embeddings.has(chunk.chunk_id))
-			.map(chunk => ({
-				chunk_id: chunk.chunk_id,
-				vector: embeddings.get(chunk.chunk_id)!,
-				content: chunk.content
-			}));
-		
-		if (chunksWithEmbeddings.length === 0) {
-			throw new Error('No chunks with embeddings available for assembly');
+				if (output.assembly_result) {
+					assemblyResult = output.assembly_result;
+					symbolContexts = output.assembly_result.symbol_contexts || [];
+					
+					// Create synthetic events for display
+					events = [
+						{
+							event_type: 'ingest.completed.v1',
+							payload: { chunk_count: chunks.length, symbol_count: symbols.length },
+							timestamp: new Date().toISOString()
+						},
+						{
+							event_type: 'assembly.completed.v1',
+							payload: output.assembly_result.stats || {},
+							timestamp: new Date().toISOString()
+						}
+					];
+				}
+
+				// Upload .docpack to R2
+				await uploadDocpack(repoUrl, jobId);
+				
+				console.log('Builder serverless job completed successfully');
+				return;
+			} else if (status === 'FAILED') {
+				const error = statusResult.error || 'Unknown error';
+				throw new Error(`Job failed: ${error}`);
+			} else if (status === 'CANCELLED') {
+				throw new Error('Job was cancelled');
+			}
+
+			// Update stage based on execution time (rough estimate)
+			const elapsed = Date.now() - startTime;
+			if (elapsed < 30000) {
+				pipelineStage = 'ingest';
+			} else if (elapsed < 120000) {
+				pipelineStage = 'embedding';
+			} else {
+				pipelineStage = 'assembly';
+			}
+
+			// Wait before next poll
+			await new Promise(resolve => setTimeout(resolve, pollInterval));
 		}
-		
-		console.log(`Sending ${chunksWithEmbeddings.length} chunks and ${symbols.length} symbols to assembly`);
-		
-		// Call assembly API
-		const response = await assemblyClient.assemble({
-			job_id: jobId,
-			repo_url: repoUrl,
-			git_ref: 'main',
-			chunks: chunksWithEmbeddings,
-			symbols: symbols
-		});
-		
-		// Store assembly result
-		assemblyResult = response;
-		
-		// Extract rich symbol contexts from assembly response
-		symbolContexts = response.symbol_contexts || [];
-		
-		// Add assembly events to event log
-		events = [...events, ...response.events];
-		
-		console.log(`Assembly complete: ${response.clusters.length} clusters, ${response.nodes.length} nodes, ${response.edges.length} edges, ${symbolContexts.length} symbol contexts`);
 	}
 
 	async function uploadDocpack(repoUrl: string, jobId: string): Promise<void> {

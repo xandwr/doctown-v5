@@ -2,25 +2,30 @@
 
 ## Environment Variables
 
-The website needs to connect to your RunPod backend in production. You must set these environment variables in Vercel:
+The website needs to connect to your RunPod serverless backend in production. You must set these environment variables in Vercel:
 
 ### Required Environment Variables
 
 Go to your Vercel project → Settings → Environment Variables and add:
 
 ```
-VITE_EMBEDDING_API_URL=https://YOUR-POD-ID-8000.proxy.runpod.net
-VITE_INGEST_API_URL=https://YOUR-POD-ID-3000.proxy.runpod.net
-VITE_ASSEMBLY_API_URL=https://YOUR-POD-ID-8002.proxy.runpod.net
+BUILDER_API_URL=https://api.runpod.ai/v2/YOUR_BUILDER_ENDPOINT_ID/run
+RUNPOD_API_KEY=your_runpod_api_key_here
 ```
 
-**To get your RunPod URLs:**
-1. Go to https://www.runpod.io/console/pods
-2. Find your active pod
-3. Look for the proxy URLs (format: `{pod-id}-{port}.proxy.runpod.net`)
-4. Replace `YOUR-POD-ID` with your actual pod ID
+**To get your configuration:**
+1. Go to https://www.runpod.io/console/serverless
+2. Find your **Builder** serverless endpoint
+3. Copy the endpoint ID (e.g., `abc123def456`)
+4. Set `BUILDER_API_URL` to: `https://api.runpod.ai/v2/abc123def456/run`
+5. Get your RunPod API key from https://www.runpod.io/console/user/settings
+6. Set `RUNPOD_API_KEY` to your API key
 
-### Optional Storage Variables (if using R2)
+**Important:** Do NOT use the `VITE_` prefix for these variables - they are server-side only and should not be exposed to the browser. The frontend calls internal API routes (`/api/submit-build` and `/api/build-status`) which securely communicate with RunPod.
+
+**Note:** The Builder serverless endpoint handles the entire pipeline (ingest → embedding → assembly) internally, so you only need one endpoint URL.
+
+### Required Storage Variables (for R2)
 
 ```
 BUCKET_NAME=your-bucket-name
@@ -55,14 +60,17 @@ After setting environment variables:
 
 ## Troubleshooting
 
-### CORS Errors
-If you see CORS errors in production:
-- Verify your RunPod URLs are correct
-- Check that your RunPod services are running
-- Ensure RunPod ports (3000, 8000, 3001) are exposed
+### Job Fails or Times Out
+If jobs fail or timeout:
+- Check your RunPod serverless endpoint is deployed and active
+- Verify your `VITE_RUNPOD_API_KEY` is correct
+- Check RunPod logs in the serverless console for errors
+- Default timeout is 10 minutes - adjust if needed for large repos
 
-### Still Using localhost:8000
-- Environment variables in Vercel must be prefixed with `VITE_`
+### Missing Environment Variables
+- `BUILDER_API_URL` and `RUNPOD_API_KEY` are server-side only (no `VITE_` prefix)
+- Server-side variables (like `BUCKET_*` and RunPod variables) are NOT exposed to the browser
+- Client-side variables (with `VITE_` prefix) are embedded in the build and publicly visible
 - After adding variables, you must **redeploy** for them to take effect
 - Check build logs to verify environment variables are set
 
