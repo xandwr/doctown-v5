@@ -12,8 +12,8 @@ COPY crates/ crates/
 COPY builder/Cargo.toml builder/
 COPY builder/src/ builder/src/
 
-# Build both Rust binaries in release mode
-RUN cargo build --release --bin builder --bin assembly-server
+# Clean any cached builds and build both Rust binaries in release mode
+RUN cargo clean && cargo build --release --bin builder --bin assembly-server
 
 # Stage 2: Final runtime image with all services
 FROM python:3.11-slim
