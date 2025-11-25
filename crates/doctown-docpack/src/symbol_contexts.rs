@@ -101,10 +101,8 @@ mod tests {
 
     #[test]
     fn test_symbol_context_creation() {
-        let context = SymbolContext::new(
-            "sym_test".to_string(),
-            "Explain this function".to_string(),
-        );
+        let context =
+            SymbolContext::new("sym_test".to_string(), "Explain this function".to_string());
 
         assert_eq!(context.symbol_id, "sym_test");
         assert_eq!(context.prompt, "Explain this function");
@@ -114,12 +112,10 @@ mod tests {
 
     #[test]
     fn test_symbol_context_with_metadata() {
-        let context = SymbolContext::new(
-            "sym_test".to_string(),
-            "Explain this function".to_string(),
-        )
-        .with_model("gpt-4".to_string())
-        .with_temperature(0.7);
+        let context =
+            SymbolContext::new("sym_test".to_string(), "Explain this function".to_string())
+                .with_model("gpt-4".to_string())
+                .with_temperature(0.7);
 
         assert_eq!(context.model, Some("gpt-4".to_string()));
         assert_eq!(context.temperature, Some(0.7));
@@ -127,14 +123,8 @@ mod tests {
 
     #[test]
     fn test_symbol_contexts_creation() {
-        let context1 = SymbolContext::new(
-            "sym_a".to_string(),
-            "Describe sym_a".to_string(),
-        );
-        let context2 = SymbolContext::new(
-            "sym_b".to_string(),
-            "Describe sym_b".to_string(),
-        );
+        let context1 = SymbolContext::new("sym_a".to_string(), "Describe sym_a".to_string());
+        let context2 = SymbolContext::new("sym_b".to_string(), "Describe sym_b".to_string());
 
         let contexts = SymbolContexts::new(vec![context1, context2]);
 
@@ -144,14 +134,8 @@ mod tests {
 
     #[test]
     fn test_symbol_contexts_get() {
-        let context1 = SymbolContext::new(
-            "sym_a".to_string(),
-            "Describe sym_a".to_string(),
-        );
-        let context2 = SymbolContext::new(
-            "sym_b".to_string(),
-            "Describe sym_b".to_string(),
-        );
+        let context1 = SymbolContext::new("sym_a".to_string(), "Describe sym_a".to_string());
+        let context2 = SymbolContext::new("sym_b".to_string(), "Describe sym_b".to_string());
 
         let contexts = SymbolContexts::new(vec![context1, context2]);
 
@@ -165,11 +149,8 @@ mod tests {
 
     #[test]
     fn test_symbol_contexts_json_roundtrip() {
-        let context = SymbolContext::new(
-            "sym_test".to_string(),
-            "Test prompt".to_string(),
-        )
-        .with_model("gpt-4".to_string());
+        let context = SymbolContext::new("sym_test".to_string(), "Test prompt".to_string())
+            .with_model("gpt-4".to_string());
 
         let contexts = SymbolContexts::new(vec![context]);
 
@@ -189,11 +170,8 @@ mod tests {
     #[test]
     fn test_add_context() {
         let mut contexts = SymbolContexts::empty();
-        
-        contexts.add_context(SymbolContext::new(
-            "sym_a".to_string(),
-            "Test".to_string(),
-        ));
+
+        contexts.add_context(SymbolContext::new("sym_a".to_string(), "Test".to_string()));
 
         assert_eq!(contexts.len(), 1);
         assert!(!contexts.is_empty());

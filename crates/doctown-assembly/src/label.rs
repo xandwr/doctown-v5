@@ -7,7 +7,7 @@ pub struct ClusterLabeler;
 
 impl ClusterLabeler {
     /// Generate a label for a cluster based on member content.
-    /// 
+    ///
     /// Uses TF-IDF or simple frequency to extract important terms.
     /// Returns a 1-2 word label.
     pub fn label_cluster(cluster_members: &[String]) -> String {
@@ -17,7 +17,7 @@ impl ClusterLabeler {
 
         // Extract terms from cluster members
         let term_frequencies = Self::extract_terms(cluster_members);
-        
+
         // Filter out common stop words and short terms
         let filtered_terms: HashMap<String, usize> = term_frequencies
             .into_iter()
@@ -51,7 +51,7 @@ impl ClusterLabeler {
 
         // Otherwise, try to create a 2-word label from top terms
         let second_term = sorted_terms[1].0;
-        
+
         // If both terms are related (share a prefix or are similar), use just the first
         if Self::are_related_terms(top_term, second_term) {
             return top_term.clone();
@@ -76,7 +76,7 @@ impl ClusterLabeler {
                 .zip(term2.chars())
                 .take_while(|(c1, c2)| c1 == c2)
                 .count();
-            
+
             if common_prefix_len >= 4 {
                 return true;
             }
@@ -93,7 +93,7 @@ impl ClusterLabeler {
         for text in texts {
             // Split text into tokens (words)
             let tokens = Self::tokenize(text);
-            
+
             for token in tokens {
                 *term_counts.entry(token).or_insert(0) += 1;
             }
@@ -167,16 +167,15 @@ impl ClusterLabeler {
     fn is_stop_word(term: &str) -> bool {
         const STOP_WORDS: &[&str] = &[
             // Common English words
-            "the", "a", "an", "and", "or", "but", "in", "on", "at", "to", "for",
-            "of", "with", "by", "from", "as", "is", "are", "was", "were", "be",
-            "been", "being", "have", "has", "had", "do", "does", "did", "will",
-            "would", "could", "should", "may", "might", "can", "this", "that",
-            "these", "those", "it", "its", "if", "then", "else", "when", "where",
-            "why", "how", "all", "each", "every", "some", "any", "no", "not",
+            "the", "a", "an", "and", "or", "but", "in", "on", "at", "to", "for", "of", "with", "by",
+            "from", "as", "is", "are", "was", "were", "be", "been", "being", "have", "has", "had",
+            "do", "does", "did", "will", "would", "could", "should", "may", "might", "can", "this",
+            "that", "these", "those", "it", "its", "if", "then", "else", "when", "where", "why",
+            "how", "all", "each", "every", "some", "any", "no", "not",
             // Common programming keywords (generic)
-            "fn", "def", "class", "struct", "impl", "trait", "enum", "type",
-            "let", "var", "const", "static", "pub", "mod", "use", "import",
-            "return", "self", "new", "get", "set", "add", "mut", "ref",
+            "fn", "def", "class", "struct", "impl", "trait", "enum", "type", "let", "var", "const",
+            "static", "pub", "mod", "use", "import", "return", "self", "new", "get", "set", "add",
+            "mut", "ref",
         ];
 
         STOP_WORDS.contains(&term)
@@ -296,7 +295,7 @@ mod tests {
             "fn send_email".to_string(),
         ];
         let terms = ClusterLabeler::extract_terms(&texts);
-        
+
         assert_eq!(*terms.get("fetch").unwrap_or(&0), 2);
         assert_eq!(*terms.get("send").unwrap_or(&0), 1);
     }
@@ -323,10 +322,7 @@ mod tests {
 
     #[test]
     fn test_label_filters_short_terms() {
-        let members = vec![
-            "fn a_b_c".to_string(),
-            "fn a_x_y".to_string(),
-        ];
+        let members = vec!["fn a_b_c".to_string(), "fn a_x_y".to_string()];
         let label = ClusterLabeler::label_cluster(&members);
         // Should not use 1-2 char terms
         assert!(!label.is_empty());
@@ -365,7 +361,9 @@ mod tests {
         ];
         let label = ClusterLabeler::label_cluster(&http_cluster);
         println!("HTTP cluster label: {}", label);
-        assert!(label.contains("handle") || label.contains("request") || label.contains("response"));
+        assert!(
+            label.contains("handle") || label.contains("request") || label.contains("response")
+        );
 
         // Test case 3: Parsers
         let parser_cluster = vec![

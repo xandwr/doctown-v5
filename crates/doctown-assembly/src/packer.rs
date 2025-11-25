@@ -24,24 +24,24 @@ pub struct PackRequest {
     pub repo_url: String,
     pub git_ref: String,
     pub commit_hash: Option<String>,
-    
+
     /// Source files and chunks from ingest
     pub source_files: Vec<SourceFileInfo>,
-    
+
     /// Cluster assignments from assembly
     pub cluster_assignments: HashMap<String, String>, // symbol_id -> cluster_id
-    pub cluster_labels: HashMap<String, String>,      // cluster_id -> label
-    
+    pub cluster_labels: HashMap<String, String>, // cluster_id -> label
+
     /// Graph from assembly
     pub nodes: Vec<NodeInfo>,
     pub edges: Vec<EdgeInfo>,
-    
+
     /// Optional: embeddings data
     pub embeddings: Option<EmbeddingData>,
-    
+
     /// Optional: symbol contexts for reproducibility
     pub symbol_contexts: Option<Vec<SymbolContext>>,
-    
+
     /// Optional: deterministic timestamp for reproducibility (testing only)
     #[serde(skip_serializing_if = "Option::is_none")]
     pub deterministic_timestamp: Option<String>,
@@ -128,7 +128,7 @@ impl Packer {
         let source_map = self.build_source_map(&request)?;
         let graph = self.build_graph(&request)?;
         let nodes = self.build_nodes(&request)?;
-        
+
         // Statistics
         let file_count = request.source_files.len();
         let symbol_count = request.nodes.len();
@@ -210,17 +210,13 @@ impl Packer {
     /// Build source map from request
     fn build_source_map(&self, request: &PackRequest) -> Result<SourceMap, String> {
         let mut files = Vec::new();
-        
+
         for source_file in &request.source_files {
             let chunks: Vec<SourceMapChunk> = source_file
                 .chunks
                 .iter()
                 .map(|c| {
-                    SourceMapChunk::new(
-                        c.chunk_id.clone(),
-                        c.byte_range,
-                        c.symbol_ids.clone(),
-                    )
+                    SourceMapChunk::new(c.chunk_id.clone(), c.byte_range, c.symbol_ids.clone())
                 })
                 .collect();
 

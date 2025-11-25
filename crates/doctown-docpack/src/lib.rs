@@ -203,9 +203,15 @@ mod integration_tests {
         let reader = DocpackReader::read(&bytes).expect("Failed to read docpack");
 
         // Verify manifest
-        assert_eq!(reader.manifest().source.repo_url, "https://github.com/test/repo");
+        assert_eq!(
+            reader.manifest().source.repo_url,
+            "https://github.com/test/repo"
+        );
         assert_eq!(reader.manifest().source.git_ref, "main");
-        assert_eq!(reader.manifest().source.commit_hash, Some("deadbeef".to_string()));
+        assert_eq!(
+            reader.manifest().source.commit_hash,
+            Some("deadbeef".to_string())
+        );
         assert_eq!(reader.manifest().statistics.file_count, 2);
         assert_eq!(reader.manifest().statistics.symbol_count, 4);
         assert_eq!(reader.manifest().statistics.cluster_count, 2);
@@ -217,7 +223,10 @@ mod integration_tests {
         // Verify nodes
         assert_eq!(reader.nodes().len(), 2);
         assert_eq!(reader.nodes().symbols[0].name, "main");
-        assert_eq!(reader.nodes().symbols[0].signature, Some("fn main()".to_string()));
+        assert_eq!(
+            reader.nodes().symbols[0].signature,
+            Some("fn main()".to_string())
+        );
         assert_eq!(reader.nodes().symbols[0].centrality, 0.9);
 
         // Verify clusters

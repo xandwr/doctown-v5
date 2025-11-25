@@ -126,11 +126,7 @@ mod tests {
             vec!["sym_main_fn".to_string()],
         );
 
-        let file = SourceMapFile::new(
-            "src/main.rs".to_string(),
-            "rust".to_string(),
-            vec![chunk],
-        );
+        let file = SourceMapFile::new("src/main.rs".to_string(), "rust".to_string(), vec![chunk]);
 
         assert_eq!(file.file_path, "src/main.rs");
         assert_eq!(file.language, "rust");
@@ -145,11 +141,7 @@ mod tests {
             vec!["sym_main_fn".to_string()],
         );
 
-        let file = SourceMapFile::new(
-            "src/main.rs".to_string(),
-            "rust".to_string(),
-            vec![chunk],
-        );
+        let file = SourceMapFile::new("src/main.rs".to_string(), "rust".to_string(), vec![chunk]);
 
         let source_map = SourceMap::new(vec![file]);
 
@@ -174,11 +166,7 @@ mod tests {
             vec!["sym_main_fn".to_string()],
         );
 
-        let file = SourceMapFile::new(
-            "src/main.rs".to_string(),
-            "rust".to_string(),
-            vec![chunk],
-        );
+        let file = SourceMapFile::new("src/main.rs".to_string(), "rust".to_string(), vec![chunk]);
 
         let source_map = SourceMap::new(vec![file]);
         let json = source_map.to_json().unwrap();
@@ -186,7 +174,10 @@ mod tests {
 
         assert_eq!(source_map.file_count(), parsed.file_count());
         assert_eq!(source_map.files[0].file_path, parsed.files[0].file_path);
-        assert_eq!(source_map.files[0].chunks[0].chunk_id, parsed.files[0].chunks[0].chunk_id);
+        assert_eq!(
+            source_map.files[0].chunks[0].chunk_id,
+            parsed.files[0].chunks[0].chunk_id
+        );
     }
 
     #[test]
@@ -197,11 +188,7 @@ mod tests {
             vec!["sym_main_fn".to_string()],
         );
 
-        let file = SourceMapFile::new(
-            "src/main.rs".to_string(),
-            "rust".to_string(),
-            vec![chunk],
-        );
+        let file = SourceMapFile::new("src/main.rs".to_string(), "rust".to_string(), vec![chunk]);
 
         let source_map = SourceMap::new(vec![file]);
         let json = source_map.to_json().unwrap();

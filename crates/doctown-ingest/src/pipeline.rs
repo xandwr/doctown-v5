@@ -88,10 +88,10 @@ pub async fn run_pipeline(
                     .collect();
 
                 let mut total_embedded = 0;
-                
+
                 // Process batches in parallel with concurrency limit
                 use futures_util::stream::{self, StreamExt};
-                
+
                 let results = stream::iter(batches)
                     .map(|(batch_num, batch_id, chunk_batch)| {
                         let client = embedding_client.clone();
@@ -151,8 +151,10 @@ pub async fn run_pipeline(
                 payload
             };
 
-            eprintln!("Sending ingest.completed.v1 event: {} files, {} chunks, {} embedded", 
-                      files_processed, chunks_created, chunks_embedded);
+            eprintln!(
+                "Sending ingest.completed.v1 event: {} files, {} chunks, {} embedded",
+                files_processed, chunks_created, chunks_embedded
+            );
 
             sender
                 .send(

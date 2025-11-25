@@ -1,4 +1,6 @@
-use crate::{Clusters, EmbeddingsError, EmbeddingsWriter, Graph, Manifest, Nodes, SourceMap, SymbolContexts};
+use crate::{
+    Clusters, EmbeddingsError, EmbeddingsWriter, Graph, Manifest, Nodes, SourceMap, SymbolContexts,
+};
 use flate2::write::GzEncoder;
 use flate2::Compression;
 use sha2::{Digest, Sha256};
@@ -10,10 +12,10 @@ use thiserror::Error;
 pub enum WriteError {
     #[error("JSON serialization error: {0}")]
     Json(#[from] serde_json::Error),
-    
+
     #[error("IO error: {0}")]
     Io(#[from] io::Error),
-    
+
     #[error("Tar error: {0}")]
     Tar(String),
 
@@ -141,7 +143,9 @@ impl DocpackWriter {
         data: &[u8],
     ) -> Result<()> {
         let mut header = tar::Header::new_gnu();
-        header.set_path(filename).map_err(|e| WriteError::Tar(e.to_string()))?;
+        header
+            .set_path(filename)
+            .map_err(|e| WriteError::Tar(e.to_string()))?;
         header.set_size(data.len() as u64);
         header.set_mode(0o644);
         header.set_cksum();
@@ -244,7 +248,7 @@ mod tests {
 
         let bytes = result.unwrap();
         assert!(!bytes.is_empty());
-        
+
         // Check that it's gzipped (starts with magic bytes)
         assert_eq!(bytes[0], 0x1f);
         assert_eq!(bytes[1], 0x8b);
@@ -259,13 +263,7 @@ mod tests {
         let clusters = create_test_clusters();
         let source_map = create_test_source_map();
 
-        let result1 = writer.write(
-            manifest.clone(),
-            &graph,
-            &nodes,
-            &clusters,
-            &source_map,
-        );
+        let result1 = writer.write(manifest.clone(), &graph, &nodes, &clusters, &source_map);
         let result2 = writer.write(manifest, &graph, &nodes, &clusters, &source_map);
 
         assert!(result1.is_ok());

@@ -185,7 +185,11 @@ mod tests {
 
     #[test]
     fn test_graph_creation() {
-        let nodes = vec!["sym_a".to_string(), "sym_b".to_string(), "sym_c".to_string()];
+        let nodes = vec![
+            "sym_a".to_string(),
+            "sym_b".to_string(),
+            "sym_c".to_string(),
+        ];
         let edges = vec![
             Edge::calls("sym_a".to_string(), "sym_b".to_string()),
             Edge::calls("sym_b".to_string(), "sym_c".to_string()),
@@ -195,12 +199,12 @@ mod tests {
 
         assert_eq!(graph.node_count(), 3);
         assert_eq!(graph.edge_count(), 2);
-        
+
         // For 3 nodes, max edges = 3 * 2 = 6
         // Actual edges = 2
         // Density = 2/6 = 0.333...
         assert!((graph.metrics.density - 0.333).abs() < 0.01);
-        
+
         // Avg degree = 2 * edges / nodes = 2 * 2 / 3 = 1.333...
         assert!((graph.metrics.avg_degree - 1.333).abs() < 0.01);
     }
@@ -240,9 +244,7 @@ mod tests {
     #[test]
     fn test_graph_json_format() {
         let nodes = vec!["sym_a".to_string(), "sym_b".to_string()];
-        let edges = vec![
-            Edge::calls("sym_a".to_string(), "sym_b".to_string()),
-        ];
+        let edges = vec![Edge::calls("sym_a".to_string(), "sym_b".to_string())];
         let graph = Graph::new(nodes, edges);
 
         let json = graph.to_json().unwrap();

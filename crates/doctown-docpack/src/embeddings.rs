@@ -69,7 +69,7 @@ impl EmbeddingsHeader {
         }
 
         let mut u32_buf = [0u8; 4];
-        
+
         reader.read_exact(&mut u32_buf)?;
         let version = u32::from_le_bytes(u32_buf);
 
@@ -131,11 +131,8 @@ impl EmbeddingsWriter {
         let index_offset = (header_size + vectors_size) as u32;
 
         // Write header
-        let header = EmbeddingsHeader::new(
-            self.vectors.len() as u32,
-            self.dimensions,
-            index_offset,
-        );
+        let header =
+            EmbeddingsHeader::new(self.vectors.len() as u32, self.dimensions, index_offset);
         header.write(&mut buffer)?;
 
         // Write vectors
@@ -149,7 +146,7 @@ impl EmbeddingsWriter {
         // Format: u32 num_entries, then for each entry:
         //   u32 chunk_id_len, chunk_id bytes, u32 offset
         buffer.write_all(&(self.vectors.len() as u32).to_le_bytes())?;
-        
+
         let mut offset = EmbeddingsHeader::size() as u32;
         for (chunk_id, vector) in &self.vectors {
             let chunk_id_bytes = chunk_id.as_bytes();
@@ -288,7 +285,7 @@ mod tests {
     #[test]
     fn test_embeddings_roundtrip() {
         let mut writer = EmbeddingsWriter::new(384);
-        
+
         // Add some test vectors
         for i in 0..10 {
             let chunk_id = format!("chunk_{}", i);
@@ -318,7 +315,10 @@ mod tests {
     fn test_invalid_dimensions() {
         let mut writer = EmbeddingsWriter::new(384);
         let result = writer.add_vector("chunk_1".to_string(), vec![1.0, 2.0, 3.0]);
-        assert!(matches!(result, Err(EmbeddingsError::InvalidDimensions(_, _))));
+        assert!(matches!(
+            result,
+            Err(EmbeddingsError::InvalidDimensions(_, _))
+        ));
     }
 
     #[test]
@@ -326,7 +326,7 @@ mod tests {
         let writer = EmbeddingsWriter::new(384);
         let bytes = writer.write().unwrap();
         let reader = EmbeddingsReader::read(bytes).unwrap();
-        
+
         let result = reader.get_vector("nonexistent");
         assert!(matches!(result, Err(EmbeddingsError::ChunkNotFound(_))));
     }
@@ -334,9 +334,15 @@ mod tests {
     #[test]
     fn test_random_access() {
         let mut writer = EmbeddingsWriter::new(3);
-        writer.add_vector("a".to_string(), vec![1.0, 2.0, 3.0]).unwrap();
-        writer.add_vector("b".to_string(), vec![4.0, 5.0, 6.0]).unwrap();
-        writer.add_vector("c".to_string(), vec![7.0, 8.0, 9.0]).unwrap();
+        writer
+            .add_vector("a".to_string(), vec![1.0, 2.0, 3.0])
+            .unwrap();
+        writer
+            .add_vector("b".to_string(), vec![4.0, 5.0, 6.0])
+            .unwrap();
+        writer
+            .add_vector("c".to_string(), vec![7.0, 8.0, 9.0])
+            .unwrap();
 
         let bytes = writer.write().unwrap();
         let reader = EmbeddingsReader::read(bytes).unwrap();

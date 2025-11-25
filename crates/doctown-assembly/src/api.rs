@@ -16,8 +16,11 @@ use std::collections::HashMap;
 use std::sync::Arc;
 use std::time::Instant;
 
-use crate::{cluster::Clusterer, context::ContextGenerator, graph::GraphBuilder, label::ClusterLabeler, EdgeKind, SymbolContext};
-use crate::packer::{Packer, PackRequest};
+use crate::packer::{PackRequest, Packer};
+use crate::{
+    cluster::Clusterer, context::ContextGenerator, graph::GraphBuilder, label::ClusterLabeler,
+    EdgeKind, SymbolContext,
+};
 
 /// Request schema for the /assemble endpoint.
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -166,8 +169,7 @@ async fn assemble(req: Json<AssembleRequest>) -> impl Responder {
     // Create context for events
     use doctown_common::JobId;
     let job_id = JobId::new(&req.job_id).unwrap_or_else(|_| JobId::generate());
-    let context = Context::new(job_id, req.repo_url.clone())
-        .with_git_ref(req.git_ref.clone());
+    let context = Context::new(job_id, req.repo_url.clone()).with_git_ref(req.git_ref.clone());
 
     info!(
         "Starting assembly for job {} with {} chunks, {} symbols",
@@ -201,7 +203,9 @@ async fn assemble(req: Json<AssembleRequest>) -> impl Responder {
     .unwrap();
 
     // Determine optimal cluster count (sqrt(n/2) heuristic)
-    let k = ((req.chunks.len() as f64 / 2.0).sqrt().ceil() as usize).max(2).min(20);
+    let k = ((req.chunks.len() as f64 / 2.0).sqrt().ceil() as usize)
+        .max(2)
+        .min(20);
     info!("Using k={} clusters for {} chunks", k, req.chunks.len());
 
     let clusterer = Clusterer::new(k);
@@ -243,7 +247,11 @@ async fn assemble(req: Json<AssembleRequest>) -> impl Responder {
         let member_symbol_ids: Vec<String> = req
             .symbols
             .iter()
-            .filter(|s| s.chunk_ids.iter().any(|cid| cluster_chunk_ids.contains(cid)))
+            .filter(|s| {
+                s.chunk_ids
+                    .iter()
+                    .any(|cid| cluster_chunk_ids.contains(cid))
+            })
             .map(|s| s.symbol_id.clone())
             .collect();
 
@@ -409,7 +417,7 @@ async fn assemble(req: Json<AssembleRequest>) -> impl Responder {
         .with_cluster_labels(cluster_labels)
         .with_languages(languages)
         .with_imports(imports_map);
-    
+
     let symbol_contexts = context_generator.generate(&graph);
     info!("Generated {} symbol contexts", symbol_contexts.len());
 
@@ -509,11 +517,11 @@ pub async fn start_server(host: &str, port: u16) -> std::io::Result<()> {
             .app_data(Data::new(state.clone()))
             .app_data(
                 // Increase JSON payload limit to 100MB for large embedding batches
-                PayloadConfig::new(100 * 1024 * 1024)
+                PayloadConfig::new(100 * 1024 * 1024),
             )
             .app_data(
                 // Also set JSON parser limit to 100MB (separate from raw payload limit)
-                JsonConfig::default().limit(100 * 1024 * 1024)
+                JsonConfig::default().limit(100 * 1024 * 1024),
             )
             .wrap(middleware::Logger::default())
             .wrap(cors)
@@ -530,9 +538,9 @@ pub async fn start_server(host: &str, port: u16) -> std::io::Result<()> {
 #[post("/pack")]
 async fn pack(req: Json<PackRequest>) -> impl Responder {
     info!("Packing docpack for repo {}", req.repo_url);
-    
+
     let packer = Packer::new();
-    
+
     match packer.pack(req.into_inner()) {
         Ok(response) => {
             info!(

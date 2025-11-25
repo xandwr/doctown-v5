@@ -15,17 +15,17 @@ pub struct Symbol {
     pub language: String,
     pub file_path: String,
     pub byte_range: (usize, usize),
-    
+
     #[serde(skip_serializing_if = "Option::is_none")]
     pub signature: Option<String>,
-    
+
     pub calls: Vec<String>,
     pub called_by: Vec<String>,
     pub imports: Vec<String>,
-    
+
     pub cluster_id: String,
     pub centrality: f64,
-    
+
     pub documentation: Documentation,
 }
 

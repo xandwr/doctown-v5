@@ -1,7 +1,7 @@
 //! Graph construction and metrics for code understanding.
 
-use std::collections::HashMap;
 use doctown_common::types::{Call, Import};
+use std::collections::HashMap;
 
 /// A node in the code graph representing a symbol.
 #[derive(Debug, Clone)]
@@ -75,16 +75,12 @@ impl Graph {
 
     /// Compute in-degree for a node.
     pub fn in_degree(&self, node_id: &str) -> usize {
-        self.edges.iter()
-            .filter(|e| e.target == node_id)
-            .count()
+        self.edges.iter().filter(|e| e.target == node_id).count()
     }
 
     /// Compute out-degree for a node.
     pub fn out_degree(&self, node_id: &str) -> usize {
-        self.edges.iter()
-            .filter(|e| e.source == node_id)
-            .count()
+        self.edges.iter().filter(|e| e.source == node_id).count()
     }
 
     /// Compute graph density.
@@ -166,7 +162,7 @@ impl GraphBuilder {
             metadata.insert("name".to_string(), symbol.name.clone());
             metadata.insert("kind".to_string(), symbol.kind.clone());
             metadata.insert("file_path".to_string(), symbol.file_path.clone());
-            
+
             if let Some(sig) = &symbol.signature {
                 metadata.insert("signature".to_string(), sig.clone());
             }
@@ -197,8 +193,9 @@ impl GraphBuilder {
             let target_id = &call.name;
 
             // Check if both caller and target exist in the graph
-            if self.symbol_index.contains_key(caller_id) 
-                && self.symbol_index.contains_key(target_id) {
+            if self.symbol_index.contains_key(caller_id)
+                && self.symbol_index.contains_key(target_id)
+            {
                 let edge = Edge {
                     source: caller_id.clone(),
                     target: target_id.clone(),
@@ -223,8 +220,9 @@ impl GraphBuilder {
                 for item in items {
                     // Try to find the imported symbol in the graph
                     // In a real implementation, this would use proper module resolution
-                    if self.symbol_index.contains_key(importer_id) 
-                        && self.symbol_index.contains_key(item) {
+                    if self.symbol_index.contains_key(importer_id)
+                        && self.symbol_index.contains_key(item)
+                    {
                         let edge = Edge {
                             source: importer_id.clone(),
                             target: item.clone(),
@@ -262,10 +260,7 @@ impl GraphBuilder {
         let mut node_embeddings: Vec<(String, Array1<f32>)> = Vec::new();
         for node in &self.graph.nodes {
             if let Some(embedding) = embeddings.get(&node.id) {
-                node_embeddings.push((
-                    node.id.clone(),
-                    Array1::from_vec(embedding.clone()),
-                ));
+                node_embeddings.push((node.id.clone(), Array1::from_vec(embedding.clone())));
             }
         }
 
@@ -381,7 +376,7 @@ mod tests {
     #[test]
     fn test_graph_builder_nodes() {
         let mut builder = GraphBuilder::new();
-        
+
         let symbols = vec![
             SymbolData {
                 symbol_id: "fn_foo".to_string(),
@@ -400,25 +395,25 @@ mod tests {
         ];
 
         builder.build_nodes(&symbols);
-        
+
         assert_eq!(builder.graph().nodes.len(), 2);
-        
+
         let node1 = builder.graph().get_node("fn_foo").unwrap();
         assert_eq!(node1.metadata.get("name").unwrap(), "foo");
         assert_eq!(node1.metadata.get("kind").unwrap(), "function");
         assert_eq!(node1.metadata.get("file_path").unwrap(), "src/main.rs");
         assert_eq!(node1.metadata.get("signature").unwrap(), "fn foo() -> i32");
-        
+
         let node2 = builder.graph().get_node("fn_bar").unwrap();
         assert_eq!(node2.metadata.get("name").unwrap(), "bar");
     }
 
     #[test]
     fn test_graph_builder_calls_edges() {
-        use doctown_common::types::{Call, CallKind, ByteRange};
-        
+        use doctown_common::types::{ByteRange, Call, CallKind};
+
         let mut builder = GraphBuilder::new();
-        
+
         // First add nodes
         let symbols = vec![
             SymbolData {
@@ -437,23 +432,21 @@ mod tests {
             },
         ];
         builder.build_nodes(&symbols);
-        
+
         // Add calls edges
-        let calls = vec![
-            (
-                "fn_main".to_string(),
-                Call {
-                    name: "fn_helper".to_string(),
-                    range: ByteRange::new(100, 110),
-                    kind: CallKind::Function,
-                    is_resolved: true,
-                },
-            ),
-        ];
+        let calls = vec![(
+            "fn_main".to_string(),
+            Call {
+                name: "fn_helper".to_string(),
+                range: ByteRange::new(100, 110),
+                kind: CallKind::Function,
+                is_resolved: true,
+            },
+        )];
         builder.build_calls_edges(&calls);
-        
+
         assert_eq!(builder.graph().edges.len(), 1);
-        
+
         let edge = &builder.graph().edges[0];
         assert_eq!(edge.source, "fn_main");
         assert_eq!(edge.target, "fn_helper");
@@ -462,45 +455,41 @@ mod tests {
 
     #[test]
     fn test_graph_builder_calls_edges_unresolved_skipped() {
-        use doctown_common::types::{Call, CallKind, ByteRange};
-        
+        use doctown_common::types::{ByteRange, Call, CallKind};
+
         let mut builder = GraphBuilder::new();
-        
-        let symbols = vec![
-            SymbolData {
-                symbol_id: "fn_main".to_string(),
-                name: "main".to_string(),
-                kind: "function".to_string(),
-                file_path: "src/main.rs".to_string(),
-                signature: None,
-            },
-        ];
+
+        let symbols = vec![SymbolData {
+            symbol_id: "fn_main".to_string(),
+            name: "main".to_string(),
+            kind: "function".to_string(),
+            file_path: "src/main.rs".to_string(),
+            signature: None,
+        }];
         builder.build_nodes(&symbols);
-        
+
         // Add unresolved call (should be skipped)
-        let calls = vec![
-            (
-                "fn_main".to_string(),
-                Call {
-                    name: "external_function".to_string(),
-                    range: ByteRange::new(100, 110),
-                    kind: CallKind::Function,
-                    is_resolved: false,
-                },
-            ),
-        ];
+        let calls = vec![(
+            "fn_main".to_string(),
+            Call {
+                name: "external_function".to_string(),
+                range: ByteRange::new(100, 110),
+                kind: CallKind::Function,
+                is_resolved: false,
+            },
+        )];
         builder.build_calls_edges(&calls);
-        
+
         // No edges should be created for unresolved calls
         assert_eq!(builder.graph().edges.len(), 0);
     }
 
     #[test]
     fn test_graph_builder_imports_edges() {
-        use doctown_common::types::{Import, ByteRange};
-        
+        use doctown_common::types::{ByteRange, Import};
+
         let mut builder = GraphBuilder::new();
-        
+
         // Add nodes
         let symbols = vec![
             SymbolData {
@@ -519,24 +508,22 @@ mod tests {
             },
         ];
         builder.build_nodes(&symbols);
-        
+
         // Add imports edges
-        let imports = vec![
-            (
-                "mod_main".to_string(),
-                Import {
-                    module_path: "std::collections".to_string(),
-                    imported_items: Some(vec!["HashMap".to_string()]),
-                    alias: None,
-                    range: ByteRange::new(0, 30),
-                    is_wildcard: false,
-                },
-            ),
-        ];
+        let imports = vec![(
+            "mod_main".to_string(),
+            Import {
+                module_path: "std::collections".to_string(),
+                imported_items: Some(vec!["HashMap".to_string()]),
+                alias: None,
+                range: ByteRange::new(0, 30),
+                is_wildcard: false,
+            },
+        )];
         builder.build_imports_edges(&imports);
-        
+
         assert_eq!(builder.graph().edges.len(), 1);
-        
+
         let edge = &builder.graph().edges[0];
         assert_eq!(edge.source, "mod_main");
         assert_eq!(edge.target, "HashMap");
@@ -545,10 +532,10 @@ mod tests {
 
     #[test]
     fn test_graph_builder_edge_types_correct() {
-        use doctown_common::types::{Call, CallKind, Import, ByteRange};
-        
+        use doctown_common::types::{ByteRange, Call, CallKind, Import};
+
         let mut builder = GraphBuilder::new();
-        
+
         // Add nodes
         let symbols = vec![
             SymbolData {
@@ -567,46 +554,48 @@ mod tests {
             },
         ];
         builder.build_nodes(&symbols);
-        
+
         // Add a call edge
-        let calls = vec![
-            (
-                "fn_a".to_string(),
-                Call {
-                    name: "fn_b".to_string(),
-                    range: ByteRange::new(10, 20),
-                    kind: CallKind::Function,
-                    is_resolved: true,
-                },
-            ),
-        ];
+        let calls = vec![(
+            "fn_a".to_string(),
+            Call {
+                name: "fn_b".to_string(),
+                range: ByteRange::new(10, 20),
+                kind: CallKind::Function,
+                is_resolved: true,
+            },
+        )];
         builder.build_calls_edges(&calls);
-        
+
         // Add an import edge
-        let imports = vec![
-            (
-                "fn_a".to_string(),
-                Import {
-                    module_path: "b".to_string(),
-                    imported_items: Some(vec!["fn_b".to_string()]),
-                    alias: None,
-                    range: ByteRange::new(0, 10),
-                    is_wildcard: false,
-                },
-            ),
-        ];
+        let imports = vec![(
+            "fn_a".to_string(),
+            Import {
+                module_path: "b".to_string(),
+                imported_items: Some(vec!["fn_b".to_string()]),
+                alias: None,
+                range: ByteRange::new(0, 10),
+                is_wildcard: false,
+            },
+        )];
         builder.build_imports_edges(&imports);
-        
+
         assert_eq!(builder.graph().edges.len(), 2);
-        
+
         // Verify edge types
-        let calls_edges: Vec<_> = builder.graph().edges.iter()
+        let calls_edges: Vec<_> = builder
+            .graph()
+            .edges
+            .iter()
             .filter(|e| e.kind == EdgeKind::Calls)
             .collect();
-        let imports_edges: Vec<_> = builder.graph().edges.iter()
+        let imports_edges: Vec<_> = builder
+            .graph()
+            .edges
+            .iter()
             .filter(|e| e.kind == EdgeKind::Imports)
             .collect();
-        
+
         assert_eq!(calls_edges.len(), 1);
         assert_eq!(imports_edges.len(), 1);
     }
@@ -688,7 +677,10 @@ mod tests {
         builder.build_similarity_edges(&embeddings, 0.7, 2);
 
         // Count related edges
-        let related_edges: Vec<_> = builder.graph().edges.iter()
+        let related_edges: Vec<_> = builder
+            .graph()
+            .edges
+            .iter()
             .filter(|e| e.kind == EdgeKind::Related)
             .collect();
 
@@ -705,7 +697,8 @@ mod tests {
 
         // Verify no node has more than top_k=2 outgoing related edges
         for node_id in &["node_a", "node_b", "node_c", "node_d"] {
-            let outgoing_related = related_edges.iter()
+            let outgoing_related = related_edges
+                .iter()
                 .filter(|e| e.source == *node_id)
                 .count();
             assert!(outgoing_related <= 2);
@@ -731,33 +724,36 @@ mod tests {
         let mut embeddings = HashMap::new();
         for i in 0..5 {
             // All vectors point roughly in same direction with slight variations
-            embeddings.insert(
-                format!("node_{}", i),
-                vec![1.0, i as f32 * 0.1, 0.0],
-            );
+            embeddings.insert(format!("node_{}", i), vec![1.0, i as f32 * 0.1, 0.0]);
         }
 
         // Build similarity edges with top_k = 2
         builder.build_similarity_edges(&embeddings, 0.5, 2);
 
         // Each node should have at most 2 outgoing related edges
-        let related_edges: Vec<_> = builder.graph().edges.iter()
+        let related_edges: Vec<_> = builder
+            .graph()
+            .edges
+            .iter()
             .filter(|e| e.kind == EdgeKind::Related)
             .collect();
 
         for i in 0..5 {
             let node_id = format!("node_{}", i);
-            let outgoing = related_edges.iter()
-                .filter(|e| e.source == node_id)
-                .count();
-            assert!(outgoing <= 2, "Node {} has {} outgoing edges, expected <= 2", node_id, outgoing);
+            let outgoing = related_edges.iter().filter(|e| e.source == node_id).count();
+            assert!(
+                outgoing <= 2,
+                "Node {} has {} outgoing edges, expected <= 2",
+                node_id,
+                outgoing
+            );
         }
     }
 
     #[test]
     fn test_graph_density() {
         let mut graph = Graph::new();
-        
+
         // Empty graph has density 0
         assert_eq!(graph.density(), 0.0);
 

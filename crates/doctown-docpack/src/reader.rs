@@ -1,4 +1,6 @@
-use crate::{Clusters, EmbeddingsError, EmbeddingsReader, Graph, Manifest, Nodes, SourceMap, SymbolContexts};
+use crate::{
+    Clusters, EmbeddingsError, EmbeddingsReader, Graph, Manifest, Nodes, SourceMap, SymbolContexts,
+};
 use flate2::read::GzDecoder;
 use sha2::{Digest, Sha256};
 use std::io::{self, Read};
@@ -9,19 +11,19 @@ use thiserror::Error;
 pub enum ReadError {
     #[error("JSON deserialization error: {0}")]
     Json(#[from] serde_json::Error),
-    
+
     #[error("IO error: {0}")]
     Io(#[from] io::Error),
-    
+
     #[error("Tar error: {0}")]
     Tar(String),
-    
+
     #[error("Missing required file: {0}")]
     MissingFile(String),
-    
+
     #[error("Checksum mismatch: expected {expected}, got {actual}")]
     ChecksumMismatch { expected: String, actual: String },
-    
+
     #[error("Invalid docpack format: {0}")]
     InvalidFormat(String),
 
@@ -57,7 +59,10 @@ impl DocpackReader {
         let mut archive = Archive::new(&tar_bytes[..]);
         let mut files = std::collections::HashMap::new();
 
-        for entry in archive.entries().map_err(|e| ReadError::Tar(e.to_string()))? {
+        for entry in archive
+            .entries()
+            .map_err(|e| ReadError::Tar(e.to_string()))?
+        {
             let mut entry = entry.map_err(|e| ReadError::Tar(e.to_string()))?;
             let path = entry
                 .path()
@@ -324,7 +329,10 @@ mod tests {
         assert!(reader.is_ok());
 
         let reader = reader.unwrap();
-        assert_eq!(reader.manifest().source.repo_url, "https://github.com/test/repo");
+        assert_eq!(
+            reader.manifest().source.repo_url,
+            "https://github.com/test/repo"
+        );
         assert_eq!(reader.graph().node_count(), 2);
         assert_eq!(reader.nodes().len(), 2);
         assert_eq!(reader.clusters().len(), 1);
@@ -342,13 +350,7 @@ mod tests {
 
         // Write
         let bytes = writer
-            .write(
-                manifest.clone(),
-                &graph,
-                &nodes,
-                &clusters,
-                &source_map,
-            )
+            .write(manifest.clone(), &graph, &nodes, &clusters, &source_map)
             .unwrap();
 
         // Read
@@ -358,7 +360,10 @@ mod tests {
         assert_eq!(reader.manifest().source.repo_url, manifest.source.repo_url);
         assert_eq!(reader.graph().nodes, graph.nodes);
         assert_eq!(reader.nodes().symbols[0].id, nodes.symbols[0].id);
-        assert_eq!(reader.clusters().clusters[0].cluster_id, clusters.clusters[0].cluster_id);
+        assert_eq!(
+            reader.clusters().clusters[0].cluster_id,
+            clusters.clusters[0].cluster_id
+        );
     }
 
     #[test]

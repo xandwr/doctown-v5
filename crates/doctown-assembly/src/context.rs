@@ -16,37 +16,37 @@ use crate::graph::Graph;
 pub struct SymbolContext {
     /// Symbol identifier.
     pub symbol_id: String,
-    
+
     /// Symbol name (e.g., "calculate_total", "User").
     pub name: String,
-    
+
     /// Kind of symbol (e.g., "function", "class", "method", "struct").
     pub kind: String,
-    
+
     /// Programming language (e.g., "rust", "python").
     pub language: String,
-    
+
     /// File path where the symbol is defined.
     pub file_path: String,
-    
+
     /// Function/method signature or struct/class definition.
     pub signature: String,
-    
+
     /// List of function/method names this symbol calls (max 10).
     pub calls: Vec<String>,
-    
+
     /// List of function/method names that call this symbol (max 10).
     pub called_by: Vec<String>,
-    
+
     /// List of imports used by this symbol (max 10).
     pub imports: Vec<String>,
-    
+
     /// Top 3 related symbol names (based on semantic similarity).
     pub related_symbols: Vec<String>,
-    
+
     /// Cluster label this symbol belongs to (if any).
     pub cluster_label: Option<String>,
-    
+
     /// Centrality score (0.0-1.0) indicating importance in the codebase.
     pub centrality: f64,
 }
@@ -165,32 +165,32 @@ impl ContextGenerator {
 
         for node in &graph.nodes {
             let symbol_id = &node.id;
-            
+
             // Extract metadata from the node
             let name = node.metadata.get("name").cloned().unwrap_or_default();
             let kind = node.metadata.get("kind").cloned().unwrap_or_default();
             let file_path = node.metadata.get("file_path").cloned().unwrap_or_default();
             let signature = node.metadata.get("signature").cloned().unwrap_or_default();
-            
+
             // Get language from metadata
             let language = self.languages.get(symbol_id).cloned().unwrap_or_default();
-            
+
             // Build lists of calls and called_by
             let calls = self.get_calls(graph, symbol_id);
             let called_by = self.get_called_by(graph, symbol_id);
-            
+
             // Get related symbols (top 3 by similarity)
             let related_symbols = self.get_related_symbols(graph, symbol_id, 3);
-            
+
             // Get imports for this symbol
             let imports = self.imports.get(symbol_id).cloned().unwrap_or_default();
-            
+
             // Get cluster label
             let cluster_label = self.cluster_labels.get(symbol_id).cloned();
-            
+
             // Get centrality score
             let centrality = centralities.get(symbol_id).copied().unwrap_or(0.0);
-            
+
             // Build context
             let context = SymbolContext::new(
                 symbol_id.clone(),
@@ -206,7 +206,7 @@ impl ContextGenerator {
             .with_related_symbols(related_symbols)
             .with_cluster_label(cluster_label)
             .with_centrality(centrality);
-            
+
             contexts.push(context);
         }
 
@@ -221,7 +221,8 @@ impl ContextGenerator {
             .filter(|e| e.source == symbol_id && e.kind == crate::EdgeKind::Calls)
             .filter_map(|e| {
                 // Get the target node's name
-                graph.get_node(&e.target)
+                graph
+                    .get_node(&e.target)
                     .and_then(|n| n.metadata.get("name"))
                     .cloned()
             })
@@ -236,7 +237,8 @@ impl ContextGenerator {
             .filter(|e| e.target == symbol_id && e.kind == crate::EdgeKind::Calls)
             .filter_map(|e| {
                 // Get the source node's name
-                graph.get_node(&e.source)
+                graph
+                    .get_node(&e.source)
                     .and_then(|n| n.metadata.get("name"))
                     .cloned()
             })
@@ -249,7 +251,7 @@ impl ContextGenerator {
             .edges
             .iter()
             .filter(|e| {
-                (e.source == symbol_id || e.target == symbol_id) 
+                (e.source == symbol_id || e.target == symbol_id)
                     && e.kind == crate::EdgeKind::Related
             })
             .filter_map(|e| {
@@ -259,9 +261,10 @@ impl ContextGenerator {
                 } else {
                     &e.source
                 };
-                
+
                 // Get the node's name and weight
-                graph.get_node(other_id)
+                graph
+                    .get_node(other_id)
                     .and_then(|n| n.metadata.get("name"))
                     .map(|name| (name.clone(), e.weight.unwrap_or(0.0)))
             })
@@ -269,9 +272,10 @@ impl ContextGenerator {
 
         // Sort by weight descending
         related.sort_by(|a, b| b.1.partial_cmp(&a.1).unwrap_or(std::cmp::Ordering::Equal));
-        
+
         // Take top N and return just the names
-        related.into_iter()
+        related
+            .into_iter()
             .take(top_n)
             .map(|(name, _)| name)
             .collect()

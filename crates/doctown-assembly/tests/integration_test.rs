@@ -1,8 +1,6 @@
 //! Integration tests for the assembly worker.
 
-use doctown_assembly::api::{
-    AssembleRequest, ChunkWithEmbedding, SymbolMetadata,
-};
+use doctown_assembly::api::{AssembleRequest, ChunkWithEmbedding, SymbolMetadata};
 use doctown_events::EventType;
 
 /// Test the full assembly pipeline with sample data.
@@ -134,10 +132,7 @@ fn test_event_serialization() {
 /// Test that EventType enum includes assembly events.
 #[test]
 fn test_assembly_event_types() {
-    assert_eq!(
-        EventType::AssemblyStarted.as_str(),
-        "assembly.started.v1"
-    );
+    assert_eq!(EventType::AssemblyStarted.as_str(), "assembly.started.v1");
     assert_eq!(
         EventType::AssemblyClusterCreated.as_str(),
         "assembly.cluster_created.v1"

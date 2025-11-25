@@ -80,11 +80,7 @@ mod tests {
 
     #[test]
     fn test_cluster_creation() {
-        let cluster = Cluster::new(
-            "cluster_auth".to_string(),
-            "authentication".to_string(),
-            12,
-        );
+        let cluster = Cluster::new("cluster_auth".to_string(), "authentication".to_string(), 12);
 
         assert_eq!(cluster.cluster_id, "cluster_auth");
         assert_eq!(cluster.label, "authentication");
@@ -93,16 +89,8 @@ mod tests {
 
     #[test]
     fn test_clusters_creation() {
-        let cluster1 = Cluster::new(
-            "cluster_auth".to_string(),
-            "authentication".to_string(),
-            12,
-        );
-        let cluster2 = Cluster::new(
-            "cluster_db".to_string(),
-            "database".to_string(),
-            8,
-        );
+        let cluster1 = Cluster::new("cluster_auth".to_string(), "authentication".to_string(), 12);
+        let cluster2 = Cluster::new("cluster_db".to_string(), "database".to_string(), 8);
 
         let clusters = Clusters::new(vec![cluster1, cluster2]);
 
@@ -122,29 +110,27 @@ mod tests {
 
     #[test]
     fn test_clusters_json_roundtrip() {
-        let cluster = Cluster::new(
-            "cluster_auth".to_string(),
-            "authentication".to_string(),
-            12,
-        );
+        let cluster = Cluster::new("cluster_auth".to_string(), "authentication".to_string(), 12);
         let clusters = Clusters::new(vec![cluster]);
 
         let json = clusters.to_json().unwrap();
         let parsed = Clusters::from_json(&json).unwrap();
 
         assert_eq!(clusters.len(), parsed.len());
-        assert_eq!(clusters.clusters[0].cluster_id, parsed.clusters[0].cluster_id);
+        assert_eq!(
+            clusters.clusters[0].cluster_id,
+            parsed.clusters[0].cluster_id
+        );
         assert_eq!(clusters.clusters[0].label, parsed.clusters[0].label);
-        assert_eq!(clusters.clusters[0].member_count, parsed.clusters[0].member_count);
+        assert_eq!(
+            clusters.clusters[0].member_count,
+            parsed.clusters[0].member_count
+        );
     }
 
     #[test]
     fn test_clusters_json_format() {
-        let cluster = Cluster::new(
-            "cluster_auth".to_string(),
-            "authentication".to_string(),
-            12,
-        );
+        let cluster = Cluster::new("cluster_auth".to_string(), "authentication".to_string(), 12);
         let clusters = Clusters::new(vec![cluster]);
 
         let json = clusters.to_json().unwrap();

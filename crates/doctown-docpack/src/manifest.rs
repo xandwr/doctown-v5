@@ -58,7 +58,7 @@ impl Manifest {
         cluster_count: usize,
     ) -> Self {
         let created_at = chrono::Utc::now().to_rfc3339();
-        
+
         Self {
             schema_version: "docpack/1.0".to_string(),
             docpack_id: String::new(), // Will be set after computing checksum
@@ -206,7 +206,7 @@ mod tests {
         );
 
         let json = manifest.to_json().unwrap();
-        
+
         // Check that key fields are present
         assert!(json.contains("\"schema_version\": \"docpack/1.0\""));
         assert!(json.contains("\"repo_url\": \"https://github.com/test/repo\""));
